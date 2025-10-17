@@ -23,19 +23,19 @@
 
 **Purpose**: Initialize React + TypeScript + Vite project with all required dependencies
 
-- [ ] T001 Create Vite React-TypeScript project using `pnpm create vite knotly-frontend --template react-ts`
-- [ ] T002 Install base dependencies by running `pnpm install` in project directory
-- [ ] T003 [P] Install rough.js library: `pnpm add roughjs` and `pnpm add -D @types/roughjs`
-- [ ] T004 [P] Install Tailwind CSS toolchain: `pnpm add -D tailwindcss postcss autoprefixer`
-- [ ] T005 Initialize Tailwind configuration by running `npx tailwindcss init -p`
-- [ ] T006 [P] Configure TypeScript strict mode in tsconfig.json (set "strict": true under compilerOptions)
-- [ ] T007 [P] Configure Tailwind content paths in tailwind.config.js to scan ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]
-- [ ] T008 [P] Replace src/index.css content with Tailwind directives: @tailwind base; @tailwind components; @tailwind utilities;
-- [ ] T009 Add Google Fonts preconnect and Nanum Pen Script font link to index.html head section
-- [ ] T010 Create src/types/ directory for TypeScript type definitions
-- [ ] T011 Create src/components/ directory for React components
-- [ ] T012 [P] Copy type contracts from specs/001-handdrawn-canvas-prototype/contracts/node-structure.ts to src/types/node.ts
-- [ ] T013 Verify setup by running `pnpm dev` and confirming server starts on http://localhost:5173
+- [x] T001 Create Vite React-TypeScript project using `pnpm create vite knotly-frontend --template react-ts`
+- [x] T002 Install base dependencies by running `pnpm install` in project directory
+- [x] T003 [P] Install rough.js library: `pnpm add roughjs` and `pnpm add -D @types/roughjs`
+- [x] T004 [P] Install Tailwind CSS toolchain: `pnpm add -D tailwindcss postcss autoprefixer`
+- [x] T005 Initialize Tailwind configuration by running `npx tailwindcss init -p`
+- [x] T006 [P] Configure TypeScript strict mode in tsconfig.json (set "strict": true under compilerOptions)
+- [x] T007 [P] Configure Tailwind content paths in tailwind.config.js to scan ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]
+- [x] T008 [P] Replace src/index.css content with Tailwind directives: @tailwind base; @tailwind components; @tailwind utilities;
+- [x] T009 Add Google Fonts preconnect and Nanum Pen Script font link to index.html head section
+- [x] T010 Create src/types/ directory for TypeScript type definitions
+- [x] T011 Create src/components/ directory for React components
+- [x] T012 [P] Copy type contracts from specs/001-handdrawn-canvas-prototype/contracts/node-structure.ts to src/types/node.ts
+- [x] T013 Verify setup by running `pnpm dev` and confirming server starts on http://localhost:5173
 
 **Checkpoint**: Development environment configured and ready for implementation
 
@@ -47,12 +47,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until type system is in place
 
-- [ ] T014 Verify src/types/node.ts contains Position interface (x, y coordinates)
-- [ ] T015 Verify src/types/node.ts contains NodeStyle interface (backgroundColor, strokeColor, strokeWidth)
-- [ ] T016 Verify src/types/node.ts contains NodeType type ("circle" | "rectangle" | "cloud")
-- [ ] T017 Verify src/types/node.ts contains Node interface (id, position, content, type, style)
-- [ ] T018 Verify src/types/node.ts contains PROTOTYPE_NODE constant with hardcoded node data
-- [ ] T019 Verify src/types/node.ts contains RENDERING_CONFIG constant with canvas dimensions, roughness, colors, font settings
+- [x] T014 Verify src/types/node.ts contains Position interface (x, y coordinates)
+- [x] T015 Verify src/types/node.ts contains NodeStyle interface (backgroundColor, strokeColor, strokeWidth)
+- [x] T016 Verify src/types/node.ts contains NodeType type ("circle" | "rectangle" | "cloud")
+- [x] T017 Verify src/types/node.ts contains Node interface (id, position, content, type, style)
+- [x] T018 Verify src/types/node.ts contains PROTOTYPE_NODE constant with hardcoded node data
+- [x] T019 Verify src/types/node.ts contains RENDERING_CONFIG constant with canvas dimensions, roughness, colors, font settings
 
 **Checkpoint**: Type system complete - user story implementation can now begin
 
@@ -70,22 +70,22 @@
 
 ### Implementation for User Story 1
 
-- [ ] T020 [P] [US1] Create Canvas component file at src/components/Canvas.tsx with empty functional component export
-- [ ] T021 [US1] Import required dependencies in Canvas.tsx: React useRef, useEffect, rough from 'roughjs', type imports from '../types/node'
-- [ ] T022 [US1] Add SVGSVGElement ref using useRef<SVGSVGElement>(null) in Canvas component
-- [ ] T023 [US1] Implement useEffect hook with empty dependency array for one-time rendering on mount
-- [ ] T024 [US1] Add early return null check in useEffect: if (!svgRef.current) return; (Constitution Principle I)
-- [ ] T025 [US1] Create rough.js SVG generator in useEffect using rough.svg(svgRef.current)
-- [ ] T026 [US1] Generate circle path using rc.circle() with PROTOTYPE_NODE position, RENDERING_CONFIG.CIRCLE_DIAMETER, and style options
-- [ ] T027 [US1] Map node style to rough.js options: roughness from config, fill from node backgroundColor, stroke from node strokeColor, strokeWidth from node, fillStyle from config
-- [ ] T028 [US1] Append generated circle path to svgRef.current using appendChild
-- [ ] T029 [US1] Implement JSX return with svg element: width and height from RENDERING_CONFIG, ref={svgRef}, xmlns="http://www.w3.org/2000/svg"
-- [ ] T030 [US1] Add rect element for canvas background: x="0", y="0", width/height from config, fill={RENDERING_CONFIG.CANVAS_BACKGROUND}
-- [ ] T031 [US1] Add text element for node content: x/y from PROTOTYPE_NODE.position (y offset by TEXT_Y_OFFSET), textAnchor="middle", fontFamily/fontSize/fill from RENDERING_CONFIG, content from PROTOTYPE_NODE.content
-- [ ] T032 [US1] Update src/App.tsx to import Canvas component from './components/Canvas'
-- [ ] T033 [US1] Replace App.tsx return JSX with Tailwind-styled container: div with className="flex justify-center items-center h-screen bg-gray-50" containing Canvas component
-- [ ] T034 [US1] Delete src/App.css if it exists (no longer needed with Tailwind)
-- [ ] T035 [US1] Run `pnpm dev` and verify prototype appears correctly in browser at http://localhost:5173
+- [x] T020 [P] [US1] Create Canvas component file at src/components/Canvas.tsx with empty functional component export
+- [x] T021 [US1] Import required dependencies in Canvas.tsx: React useRef, useEffect, rough from 'roughjs', type imports from '../types/node'
+- [x] T022 [US1] Add SVGSVGElement ref using useRef<SVGSVGElement>(null) in Canvas component
+- [x] T023 [US1] Implement useEffect hook with empty dependency array for one-time rendering on mount
+- [x] T024 [US1] Add early return null check in useEffect: if (!svgRef.current) return; (Constitution Principle I)
+- [x] T025 [US1] Create rough.js SVG generator in useEffect using rough.svg(svgRef.current)
+- [x] T026 [US1] Generate circle path using rc.circle() with PROTOTYPE_NODE position, RENDERING_CONFIG.CIRCLE_DIAMETER, and style options
+- [x] T027 [US1] Map node style to rough.js options: roughness from config, fill from node backgroundColor, stroke from node strokeColor, strokeWidth from node, fillStyle from config
+- [x] T028 [US1] Append generated circle path to svgRef.current using appendChild
+- [x] T029 [US1] Implement JSX return with svg element: width and height from RENDERING_CONFIG, ref={svgRef}, xmlns="http://www.w3.org/2000/svg"
+- [x] T030 [US1] Add rect element for canvas background: x="0", y="0", width/height from config, fill={RENDERING_CONFIG.CANVAS_BACKGROUND}
+- [x] T031 [US1] Add text element for node content: x/y from PROTOTYPE_NODE.position (y offset by TEXT_Y_OFFSET), textAnchor="middle", fontFamily/fontSize/fill from RENDERING_CONFIG, content from PROTOTYPE_NODE.content
+- [x] T032 [US1] Update src/App.tsx to import Canvas component from './components/Canvas'
+- [x] T033 [US1] Replace App.tsx return JSX with Tailwind-styled container: div with className="flex justify-center items-center h-screen bg-gray-50" containing Canvas component
+- [x] T034 [US1] Delete src/App.css if it exists (no longer needed with Tailwind)
+- [x] T035 [US1] Run `pnpm dev` and verify prototype appears correctly in browser at http://localhost:5173
 
 **Checkpoint**: User Story 1 complete - prototype displays hand-drawn circle with handwritten text
 
@@ -107,16 +107,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T036 [US2] Open Chrome DevTools and navigate to Elements tab to inspect Canvas SVG
-- [ ] T037 [US2] Right-click text element in Elements tab and select "Inspect" to view computed styles
-- [ ] T038 [US2] Verify fontFamily shows "Nanum Pen Script, cursive" (fallback present)
-- [ ] T039 [US2] Verify fontSize is "18px" and fill is "#333"
-- [ ] T040 [US2] Verify circle fill is "#FFE082" in SVG path element
-- [ ] T041 [US2] Use online contrast checker (https://webaim.org/resources/contrastchecker/) to verify #333 on #FFE082 = 5.89:1 (passes WCAG AA 4.5:1 requirement)
-- [ ] T042 [US2] Zoom browser to 200% using Ctrl/Cmd + + and visually verify text remains sharp (no pixelation)
-- [ ] T043 [US2] Zoom browser to 50% using Ctrl/Cmd + - and visually verify circle and text remain clear
-- [ ] T044 [US2] Reset zoom to 100% and read Korean text to verify 18px size with 1.5 line spacing is comfortably readable
-- [ ] T045 [US2] Test in Firefox, Safari, and Edge browsers to verify consistent rendering across modern browsers
+- [x] T036 [US2] Open Chrome DevTools and navigate to Elements tab to inspect Canvas SVG
+- [x] T037 [US2] Right-click text element in Elements tab and select "Inspect" to view computed styles
+- [x] T038 [US2] Verify fontFamily shows "Nanum Pen Script, cursive" (fallback present)
+- [x] T039 [US2] Verify fontSize is "18px" and fill is "#333"
+- [x] T040 [US2] Verify circle fill is "#FFE082" in SVG path element
+- [x] T041 [US2] Use online contrast checker (https://webaim.org/resources/contrastchecker/) to verify #333 on #FFE082 = 5.89:1 (passes WCAG AA 4.5:1 requirement)
+- [x] T042 [US2] Zoom browser to 200% using Ctrl/Cmd + + and visually verify text remains sharp (no pixelation)
+- [x] T043 [US2] Zoom browser to 50% using Ctrl/Cmd + - and visually verify circle and text remain clear
+- [x] T044 [US2] Reset zoom to 100% and read Korean text to verify 18px size with 1.5 line spacing is comfortably readable
+- [x] T045 [US2] Test in Firefox, Safari, and Edge browsers to verify consistent rendering across modern browsers
 
 **Checkpoint**: User Story 2 complete - accessibility verified (contrast, zoom, readability)
 
@@ -134,23 +134,23 @@
 
 ### Implementation for User Story 3
 
-- [ ] T046 [US3] Open Chrome DevTools (F12 or Cmd+Option+I) and click "Performance" tab
-- [ ] T047 [US3] Click record button (⚫) in Performance tab and refresh page (Ctrl/Cmd + R)
-- [ ] T048 [US3] Stop recording after page finishes loading (click stop button)
-- [ ] T049 [US3] Analyze FPS graph in Performance timeline - verify consistent 60fps with no dips or jank
-- [ ] T050 [US3] Check Main thread activity - verify rough.js circle generation completes in <5ms
-- [ ] T051 [US3] Switch to "Network" tab in DevTools and refresh page with Network tab open
-- [ ] T052 [US3] Locate "Nanum+Pen+Script" font request in Network waterfall (may be woff2 file)
-- [ ] T053 [US3] Verify font request Time column shows <500ms (includes DNS + download)
-- [ ] T054 [US3] Verify no Flash of Unstyled Text (FOUT) occurs - text should appear directly in Nanum Pen Script font
-- [ ] T055 [US3] Check total page load time - DOMContentLoaded and Load events should both complete <1s
-- [ ] T056 [US3] Switch to "Memory" tab, click "Take heap snapshot", and verify total memory usage is <50MB (should be ~10MB for this prototype)
-- [ ] T057 [US3] Click "Lighthouse" tab in DevTools and select "Performance" category only
-- [ ] T058 [US3] Click "Analyze page load" and wait for Lighthouse audit to complete
-- [ ] T059 [US3] Verify First Contentful Paint (FCP) metric is <1s (ideally <500ms)
-- [ ] T060 [US3] Verify Lighthouse Performance score is 90+ (green)
-- [ ] T061 [US3] Test with DevTools CPU throttling: Open Performance tab, click gear icon, select "4x slowdown" to simulate mobile
-- [ ] T062 [US3] Record Performance profile with CPU throttling enabled and verify rendering still completes smoothly (may drop below 60fps but should not freeze)
+- [x] T046 [US3] Open Chrome DevTools (F12 or Cmd+Option+I) and click "Performance" tab
+- [x] T047 [US3] Click record button (⚫) in Performance tab and refresh page (Ctrl/Cmd + R)
+- [x] T048 [US3] Stop recording after page finishes loading (click stop button)
+- [x] T049 [US3] Analyze FPS graph in Performance timeline - verify consistent 60fps with no dips or jank
+- [x] T050 [US3] Check Main thread activity - verify rough.js circle generation completes in <5ms
+- [x] T051 [US3] Switch to "Network" tab in DevTools and refresh page with Network tab open
+- [x] T052 [US3] Locate "Nanum+Pen+Script" font request in Network waterfall (may be woff2 file)
+- [x] T053 [US3] Verify font request Time column shows <500ms (includes DNS + download)
+- [x] T054 [US3] Verify no Flash of Unstyled Text (FOUT) occurs - text should appear directly in Nanum Pen Script font
+- [x] T055 [US3] Check total page load time - DOMContentLoaded and Load events should both complete <1s
+- [x] T056 [US3] Switch to "Memory" tab, click "Take heap snapshot", and verify total memory usage is <50MB (should be ~10MB for this prototype)
+- [x] T057 [US3] Click "Lighthouse" tab in DevTools and select "Performance" category only
+- [x] T058 [US3] Click "Analyze page load" and wait for Lighthouse audit to complete
+- [x] T059 [US3] Verify First Contentful Paint (FCP) metric is <1s (ideally <500ms)
+- [x] T060 [US3] Verify Lighthouse Performance score is 90+ (green)
+- [x] T061 [US3] Test with DevTools CPU throttling: Open Performance tab, click gear icon, select "4x slowdown" to simulate mobile
+- [x] T062 [US3] Record Performance profile with CPU throttling enabled and verify rendering still completes smoothly (may drop below 60fps but should not freeze)
 
 **Checkpoint**: User Story 3 complete - performance validated across all metrics
 
@@ -165,18 +165,18 @@
 
 **Purpose**: Final verification, documentation, and cleanup for production readiness
 
-- [ ] T063 [P] Add inline comments to Canvas.tsx explaining rough.js options (roughness, fillStyle, etc.)
-- [ ] T064 [P] Add JSDoc comment to Canvas component explaining its purpose (prototype for design validation)
-- [ ] T065 [P] Verify all TypeScript types have no `any` types (strict mode compliance)
-- [ ] T066 [P] Run TypeScript compiler check: `pnpm exec tsc --noEmit` and fix any errors
-- [ ] T067 [P] Create README.md at project root with quickstart instructions (refer to specs/001-handdrawn-canvas-prototype/quickstart.md)
-- [ ] T068 Build production bundle using `pnpm build` to verify no build errors
-- [ ] T069 Preview production build using `pnpm preview` and verify prototype renders correctly
-- [ ] T070 Run full validation checklist from quickstart.md section "Step 11: Validate Success Criteria"
-- [ ] T071 [P] Document team feedback collection results in a markdown file (note for team: collect from 5 members per SC-001, SC-002)
-- [ ] T072 [P] Take screenshots of prototype at different zoom levels (50%, 100%, 200%) for documentation
-- [ ] T073 [P] Export DevTools Performance and Lighthouse reports as JSON for reference
-- [ ] T074 Final manual review: Compare rendered prototype to spec.md requirements FR-001 through FR-015 line-by-line
+- [x] T063 [P] Add inline comments to Canvas.tsx explaining rough.js options (roughness, fillStyle, etc.)
+- [x] T064 [P] Add JSDoc comment to Canvas component explaining its purpose (prototype for design validation)
+- [x] T065 [P] Verify all TypeScript types have no `any` types (strict mode compliance)
+- [x] T066 [P] Run TypeScript compiler check: `pnpm exec tsc --noEmit` and fix any errors
+- [x] T067 [P] Create README.md at project root with quickstart instructions (refer to specs/001-handdrawn-canvas-prototype/quickstart.md)
+- [x] T068 Build production bundle using `pnpm build` to verify no build errors
+- [x] T069 Preview production build using `pnpm preview` and verify prototype renders correctly
+- [x] T070 Run full validation checklist from quickstart.md section "Step 11: Validate Success Criteria"
+- [x] T071 [P] Document team feedback collection results in a markdown file (note for team: collect from 5 members per SC-001, SC-002)
+- [x] T072 [P] Take screenshots of prototype at different zoom levels (50%, 100%, 200%) for documentation
+- [x] T073 [P] Export DevTools Performance and Lighthouse reports as JSON for reference
+- [x] T074 Final manual review: Compare rendered prototype to spec.md requirements FR-001 through FR-015 line-by-line
 
 **Checkpoint**: Feature complete and validated against all success criteria
 
