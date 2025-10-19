@@ -94,8 +94,8 @@ export function estimateNodeSize(
   const charWidth = fontSize * 0.6;
   const lineHeight = fontSize * 1.5;
 
-  const estimatedWidth = Math.max(100, Math.min(800, maxLineLength * charWidth + 20));
-  const estimatedHeight = Math.max(60, Math.min(600, lineCount * lineHeight + 20));
+  const estimatedWidth = maxLineLength * charWidth + 20;
+  const estimatedHeight = lineCount * lineHeight + 20;
 
   return {
     width: estimatedWidth,
