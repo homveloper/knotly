@@ -50,6 +50,8 @@ export function StylePanel({ nodeId, currentStyle, onClose }: StylePanelProps) {
 
   const borderTokens = ['thin', 'normal', 'thick', 'bold'];
 
+  const shapeTokens = ['shape-none', 'shape-rect', 'shape-circle', 'shape-rounded'];
+
   // Debounced update timer
   const debounceTimerRef = useState<ReturnType<typeof setTimeout> | null>(null)[0];
 
@@ -61,8 +63,8 @@ export function StylePanel({ nodeId, currentStyle, onClose }: StylePanelProps) {
    * - Debounces updateNode call by 100ms to reduce store updates
    */
   const toggleToken = (token: string, category: string[]) => {
-    // For exclusive categories (colors, sizes), remove other tokens in same category
-    const isExclusive = category === colorTokens || category === sizeTokens;
+    // For exclusive categories (colors, sizes, shapes), remove other tokens in same category
+    const isExclusive = category === colorTokens || category === sizeTokens || category === shapeTokens;
 
     let newTokens = new Set(activeTokens);
 
@@ -164,6 +166,14 @@ export function StylePanel({ nodeId, currentStyle, onClose }: StylePanelProps) {
           <h4 className="text-sm font-medium text-gray-700 mb-2">Border</h4>
           <div className="flex flex-wrap gap-2">
             {borderTokens.map((token) => renderTokenButton(token, borderTokens))}
+          </div>
+        </div>
+
+        {/* Shape */}
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Shape</h4>
+          <div className="flex flex-wrap gap-2">
+            {shapeTokens.map((token) => renderTokenButton(token, shapeTokens))}
           </div>
         </div>
       </div>

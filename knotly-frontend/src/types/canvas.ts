@@ -24,6 +24,12 @@ export interface Node {
   type: 'circle'; // Shape type (only circles in this phase, future: rectangle, cloud, etc)
   style: string; // Space-separated token names (e.g., "color-yellow h4 neat")
 
+  // Cached Measurements (optional, for performance)
+  measuredSize?: {
+    width: number; // Measured width from DOM (includes content + padding)
+    height: number; // Measured height from DOM (includes content + padding)
+  };
+
   // Metadata
   createdAt: number; // Unix timestamp in milliseconds
   updatedAt: number; // Unix timestamp in milliseconds, updated on content/style changes
@@ -180,4 +186,5 @@ export interface StyleObject {
   fontSize?: number; // Text size (10-32px)
   fontWeight?: number; // Text weight (100-900)
   roughness?: number; // Hand-drawn feel (0=smooth, 3=very rough)
+  shape?: string; // Shape type (none, rect, circle, rounded)
 }

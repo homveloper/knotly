@@ -4,7 +4,7 @@
 import type { TokenDefinitions, StyleObject } from '../types/canvas';
 
 /**
- * Default token library with 8 colors, 6 sizes, 5 feels, 4 borders
+ * Default token library with 8 colors, 6 sizes, 5 feels, 4 borders, 4 shapes
  * Pre-validated at build time (all tokens follow naming conventions)
  */
 export const DEFAULT_TOKENS: TokenDefinitions = {
@@ -18,13 +18,13 @@ export const DEFAULT_TOKENS: TokenDefinitions = {
   'color-orange': { stroke: '#ea580c', fill: '#fed7aa' },
   'color-pink': { stroke: '#db2777', fill: '#fce7f3' },
 
-  // Sizes (6) - h1 is largest, h6 is smallest
-  h1: { width: 320, height: 200, fontSize: 24 },
-  h2: { width: 280, height: 180, fontSize: 20 },
-  h3: { width: 240, height: 160, fontSize: 18 },
-  h4: { width: 200, height: 140, fontSize: 16 },
-  h5: { width: 180, height: 120, fontSize: 14 },
-  h6: { width: 160, height: 100, fontSize: 12 },
+  // Sizes (6) - fontSize only, width/height are auto-calculated based on content
+  h1: { fontSize: 24 },
+  h2: { fontSize: 20 },
+  h3: { fontSize: 18 },
+  h4: { fontSize: 16 },
+  h5: { fontSize: 14 },
+  h6: { fontSize: 12 },
 
   // Feel (5) - roughness levels for hand-drawn appearance
   smooth: { roughness: 0.5 },
@@ -38,6 +38,12 @@ export const DEFAULT_TOKENS: TokenDefinitions = {
   normal: { strokeWidth: 2 },
   thick: { strokeWidth: 3 },
   bold: { strokeWidth: 4 },
+
+  // Shape (4) - geometric forms
+  'shape-none': { shape: 'none' }, // No background shape (text only)
+  'shape-rect': { shape: 'rect' }, // Rectangle
+  'shape-circle': { shape: 'circle' }, // Circle
+  'shape-rounded': { shape: 'rounded' }, // Rounded rectangle
 };
 
 /**

@@ -75,7 +75,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       position: snappedPosition,
       content: '', // Empty initially, user will edit
       type: 'circle',
-      style: 'color-yellow h4 neat', // Token-based style
+      style: 'h4', // Minimal style: size only, no shape or color
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
