@@ -36,6 +36,7 @@ export function NodeComponent({ node }: NodeComponentProps) {
     updateNode,
     moveNode,
     createEdge,
+    deleteNode,
     setSelectedNode,
     setEditingNode,
     selectedNodeId,
@@ -209,29 +210,35 @@ export function NodeComponent({ node }: NodeComponentProps) {
   );
 
   /**
-   * DOM measurement for accurate node sizing (hybrid approach - Phase 2)
-   * Measures actual text content and updates store with measured size
+   * DOM measurement for accurate node sizing (real-time auto-sizing)
+   * Measures actual text content during editing and updates store immediately
    */
   useEffect(() => {
-    // Only measure when not editing to avoid flickering
-    if (!isEditing && textContentRef.current) {
+    let measuredWidth: number;
+    let measuredHeight: number;
+
+    // Always measure using div (textContentRef) for accurate sizing
+    // This works both during editing and display mode
+    if (textContentRef.current) {
       const rect = textContentRef.current.getBoundingClientRect();
-      const measuredWidth = Math.max(100, Math.min(800, rect.width + 20)); // +20px for padding
-      const measuredHeight = Math.max(60, Math.min(600, rect.height + 20));
-
-      // Update store if size changed significantly (avoid unnecessary updates)
-      const sizeChanged =
-        !node.measuredSize ||
-        Math.abs(node.measuredSize.width - measuredWidth) > 5 ||
-        Math.abs(node.measuredSize.height - measuredHeight) > 5;
-
-      if (sizeChanged) {
-        updateNode(node.id, {
-          measuredSize: { width: measuredWidth, height: measuredHeight },
-        });
-      }
+      measuredWidth = rect.width + 40; // +40px for padding
+      measuredHeight = rect.height + 40;
+    } else {
+      return; // No measurement available
     }
-  }, [node.content, fontSize, isEditing, node.id, node.measuredSize, updateNode]);
+
+    // Update store if size changed significantly (avoid unnecessary updates)
+    const sizeChanged =
+      !node.measuredSize ||
+      Math.abs(node.measuredSize.width - measuredWidth) > 5 ||
+      Math.abs(node.measuredSize.height - measuredHeight) > 5;
+
+    if (sizeChanged) {
+      updateNode(node.id, {
+        measuredSize: { width: measuredWidth, height: measuredHeight },
+      });
+    }
+  }, [node.content, fontSize, isEditing, node.id, updateNode]);
 
   /**
    * Focus textarea when entering edit mode
@@ -313,6 +320,11 @@ export function NodeComponent({ node }: NodeComponentProps) {
   };
 
   const handleBlur = () => {
+    // 빈 노드면 삭제
+    if (!node.content || node.content.trim() === '') {
+      deleteNode(node.id);
+      return;
+    }
     setEditingNode(null);
   };
 
@@ -398,21 +410,23 @@ export function NodeComponent({ node }: NodeComponentProps) {
 
         {/* Text content */}
         <foreignObject
-          x={node.position.x + 10}
-          y={node.position.y + 10}
-          width={width - 20}
-          height={height - 20}
+          x={node.position.x + 5}
+          y={node.position.y + 5}
+          width={width - 10}
+          height={height - 10}
           style={{
             cursor: 'text',
             pointerEvents: isEditing ? 'auto' : 'none',
           }}
         >
-          {isEditing ? (
+          {/* Textarea - only shown during editing */}
+          {isEditing && (
             <textarea
               ref={textareaRef}
               value={node.content}
               onChange={handleTextChange}
               onBlur={handleBlur}
+              wrap="off"
               style={{
                 width: '100%',
                 height: '100%',
@@ -424,35 +438,35 @@ export function NodeComponent({ node }: NodeComponentProps) {
                 border: 'none',
                 outline: 'none',
                 resize: 'none',
-                overflow: 'hidden',
-                overflowY: 'auto',
                 textAlign: 'center',
                 color: '#333',
+                overflow: 'hidden',
+                whiteSpace: 'pre',
               }}
             />
-          ) : (
-            <div
-              ref={textContentRef}
-              style={{
-                width: '100%',
-                height: '100%',
-                padding: '4px',
-                fontFamily: 'Nanum Pen Script, cursive',
-                fontSize: `${fontSize}px`,
-                fontWeight,
-                color: '#333',
-                textAlign: 'center',
-                overflow: 'hidden',
-                overflowY: 'auto',
-                wordWrap: 'break-word',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span style={{ whiteSpace: 'pre-wrap' }}>{node.content || 'Tap to edit'}</span>
-            </div>
           )}
+          {/* Display div - always rendered for measurement, hidden during editing */}
+          <div
+            ref={textContentRef}
+            style={{
+              width: 'max-content',
+              height: 'auto',
+              maxWidth: '100%',
+              padding: '4px',
+              fontFamily: 'Nanum Pen Script, cursive',
+              fontSize: `${fontSize}px`,
+              fontWeight,
+              color: '#333',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              visibility: isEditing ? 'hidden' : 'visible',
+              position: isEditing ? 'absolute' : 'static',
+            }}
+          >
+            <span style={{ whiteSpace: 'pre' }}>{node.content || ''}</span>
+          </div>
         </foreignObject>
       </g>
 
