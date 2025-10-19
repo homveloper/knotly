@@ -5,6 +5,7 @@ import { NodeComponent } from './NodeComponent';
 import { EdgeComponent } from './EdgeComponent';
 import { GridBackground } from './GridBackground';
 import { getNodeCenter } from '../utils/canvasHelpers';
+import { useLinkMode } from './LinkModeButton';
 
 /**
  * Canvas Component - Interactive SVG canvas for graph editor
@@ -60,6 +61,9 @@ export const Canvas: React.FC = () => {
   const createNode = useCanvasStore((state) => state.createNode);
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
   const setEditingNode = useCanvasStore((state) => state.setEditingNode);
+
+  // Link mode state for cancellation on canvas click
+  const { cancelConnectMode } = useLinkMode();
 
   // Track mouse position for temporary connection line (T068)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -194,6 +198,10 @@ export const Canvas: React.FC = () => {
         }
         // Priority 2: Deselect node (only if NOT double-clicking)
         setSelectedNode(null);
+
+        // Priority 3: Cancel connect mode if active
+        cancelConnectMode();
+
         clickTimerRef.current = null;
       }, 300);
     }

@@ -18,6 +18,7 @@ interface LinkModeContextType {
   connectMode: boolean;
   firstNodeId: string | null;
   onNodeSelected: (nodeId: string) => void;
+  cancelConnectMode: () => void;
 }
 
 const LinkModeContext = createContext<LinkModeContextType | undefined>(
@@ -41,12 +42,15 @@ export const LinkModeProvider: React.FC<{ children: ReactNode }> = ({
   // Handle node selection during link mode
   const handleNodeSelected = (nodeId: string) => {
     if (!connectMode) {
-      // Link mode not active, do nothing
+      // Link mode not active, activate it and set first node
+      setConnectMode(true);
+      setFirstNodeId(nodeId);
+      setSelfLoopAttempt(false);
       return;
     }
 
     if (!firstNodeId) {
-      // First node selection
+      // First node selection (should not reach here, but handle it anyway)
       setFirstNodeId(nodeId);
       setSelfLoopAttempt(false);
       return;
@@ -70,29 +74,23 @@ export const LinkModeProvider: React.FC<{ children: ReactNode }> = ({
     setSelfLoopAttempt(false);
   };
 
+  // Cancel connect mode - reset all state
+  const cancelConnectMode = () => {
+    setConnectMode(false);
+    setFirstNodeId(null);
+    setSelfLoopAttempt(false);
+  };
+
   const value: LinkModeContextType = {
     connectMode,
     firstNodeId,
     onNodeSelected: handleNodeSelected,
+    cancelConnectMode,
   };
 
   return (
     <LinkModeContext.Provider value={value}>
       {children}
-      <LinkModeButton
-        connectMode={connectMode}
-        firstNodeId={firstNodeId}
-        selfLoopAttempt={selfLoopAttempt}
-        onToggle={() => {
-          if (connectMode) {
-            setConnectMode(false);
-            setFirstNodeId(null);
-          } else {
-            setConnectMode(true);
-            setFirstNodeId(null);
-          }
-        }}
-      />
     </LinkModeContext.Provider>
   );
 };

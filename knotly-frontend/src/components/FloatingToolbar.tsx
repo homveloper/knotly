@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCanvasStore } from '../store/canvasStore';
 import { StylePanel } from './StylePanel';
 import { createPortal } from 'react-dom';
+import { useLinkMode } from './LinkModeButton';
 
 interface FloatingToolbarProps {
   nodeId: string;
@@ -32,6 +33,7 @@ export function FloatingToolbar({
 }: FloatingToolbarProps) {
   const updateNode = useCanvasStore((state) => state.updateNode);
   const [showFullPanel, setShowFullPanel] = useState(false);
+  const { connectMode, firstNodeId, onNodeSelected, cancelConnectMode } = useLinkMode();
 
   // Parse current tokens
   const activeTokens = new Set(currentStyle.split(' ').filter(Boolean));
@@ -70,6 +72,22 @@ export function FloatingToolbar({
     // Update node
     const newStyle = Array.from(newTokens).join(' ');
     updateNode(nodeId, { style: newStyle });
+  };
+
+  /**
+   * Handle link button click - toggle connect mode
+   */
+  const handleLinkClick = () => {
+    // If already in connect mode and this is the first node, cancel
+    if (connectMode && firstNodeId === nodeId) {
+      cancelConnectMode();
+      return;
+    }
+
+    // Otherwise, start connect mode or select second node
+    onNodeSelected(nodeId);
+    // Keep toolbar open - user needs to select second node
+    // ConnectMode will auto-reset after edge is created
   };
 
   // Calculate screen position
@@ -128,6 +146,23 @@ export function FloatingToolbar({
             );
           })}
         </div>
+
+        {/* Link Button */}
+        <button
+          onClick={handleLinkClick}
+          className={`px-2 py-1 text-sm rounded transition-colors border-r border-gray-200 mr-2 ${
+            connectMode && firstNodeId === nodeId
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-100 hover:bg-gray-200'
+          }`}
+          title={
+            connectMode && firstNodeId === nodeId
+              ? 'Select target node to link'
+              : 'Link to another node'
+          }
+        >
+          🔗
+        </button>
 
         {/* More Button */}
         <button
