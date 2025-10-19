@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@use-gesture/react": "^10.3.1",
+    "js-yaml": "^4.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "roughjs": "^4.6.6",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@tailwindcss/postcss": "^4.1.14",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
