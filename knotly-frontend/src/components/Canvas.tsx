@@ -51,16 +51,22 @@ export const Canvas: React.FC = () => {
   const zoom = useCanvasStore((state) => state.zoom);
   const pan = useCanvasStore((state) => state.pan);
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
+  const editingNodeId = useCanvasStore((state) => state.editingNodeId);
   const connectingFrom = useCanvasStore((state) => state.connectingFrom);
   const setZoom = useCanvasStore((state) => state.setZoom);
   const setPan = useCanvasStore((state) => state.setPan);
   const createNode = useCanvasStore((state) => state.createNode);
+  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
+  const setEditingNode = useCanvasStore((state) => state.setEditingNode);
 
   // Track mouse position for temporary connection line (T068)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   // SVG ref for gesture binding
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Click timer ref for double-click detection
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Gesture intent detection state
   const gestureStateRef = useRef({
@@ -118,6 +124,23 @@ export const Canvas: React.FC = () => {
 
   // Double-click handler: create new node with auto-connect
   const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Only handle if clicking empty canvas (not a node or child element)
+    if (e.target !== e.currentTarget) {
+      return;
+    }
+
+    // IMPORTANT: Cancel single-click timer to prevent deselection
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+
+    // Priority 1: Exit editing mode if active
+    if (editingNodeId) {
+      setEditingNode(null);
+      // Continue to create new node after exiting editing mode
+    }
+
     // Get click position in screen coordinates
     const rect = e.currentTarget.getBoundingClientRect();
     const screenX = e.clientX - rect.left;
@@ -128,6 +151,7 @@ export const Canvas: React.FC = () => {
     const canvasY = (screenY - pan.y) / zoom;
 
     // Create node at click position, auto-connect to selected node
+    // selectedNodeId is preserved because timer was cancelled
     createNode({ x: canvasX, y: canvasY }, selectedNodeId);
   };
 
@@ -150,10 +174,34 @@ export const Canvas: React.FC = () => {
     setMousePos({ x: canvasX, y: canvasY });
   };
 
+  // Handle external click to deselect nodes
+  // Uses timer to distinguish between single click and double-click
+  const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Only handle if clicking empty canvas (not a node or child element)
+    if (e.target === e.currentTarget) {
+      // Clear existing timer
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+
+      // Set timer for 300ms - will be cancelled if double-click occurs
+      clickTimerRef.current = setTimeout(() => {
+        // Priority 1: Exit editing mode if active
+        if (editingNodeId) {
+          setEditingNode(null);
+        }
+        // Priority 2: Deselect node (only if NOT double-clicking)
+        setSelectedNode(null);
+        clickTimerRef.current = null;
+      }, 300);
+    }
+  };
+
   return (
     <svg
       ref={svgRef}
       {...bind()}
+      onClick={handleCanvasClick}
       onDoubleClick={handleDoubleClick}
       onMouseMove={handleMouseMove}
       width="100%"
@@ -198,7 +246,18 @@ export const Canvas: React.FC = () => {
               strokeWidth={2}
               strokeDasharray="5,5"
               opacity={0.6}
-            />
+              style={{
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="0"
+                to="10"
+                dur="0.5s"
+                repeatCount="indefinite"
+              />
+            </line>
           );
         })()}
 

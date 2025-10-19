@@ -5,7 +5,7 @@ import { useCanvasStore } from '../store/canvasStore';
 import { useLinkMode } from './LinkModeButton';
 import { parseTokens } from '../utils/tokenParser';
 import { findNodeAtPosition } from '../utils/canvasHelpers';
-import { StylePanel } from './StylePanel';
+import { FloatingToolbar } from './FloatingToolbar';
 import type { Node } from '../types/canvas';
 
 interface NodeComponentProps {
@@ -38,6 +38,7 @@ export function NodeComponent({ node }: NodeComponentProps) {
     createEdge,
     setSelectedNode,
     setEditingNode,
+    selectedNodeId,
     editingNodeId,
     connectingFrom,
     setConnectingFrom,
@@ -50,7 +51,6 @@ export function NodeComponent({ node }: NodeComponentProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showStylePanel, setShowStylePanel] = useState(false);
 
   // Parse token-based style
   const parsedStyle = useMemo(
@@ -68,11 +68,15 @@ export function NodeComponent({ node }: NodeComponentProps) {
   const strokeWidth = parsedStyle.strokeWidth || 2;
   const roughness = parsedStyle.roughness || 1.0;
 
-  // Determine if this node is being edited
+  // Determine selection and editing states
+  const isSelected = selectedNodeId === node.id;
   const isEditing = editingNodeId === node.id;
 
   // Visual feedback: highlight if this is the connecting source
   const isConnectingSource = connectingFrom === node.id;
+
+  // Show FloatingToolbar only when selected and not editing
+  const showFloatingToolbar = isSelected && !isEditing && !connectingFrom;
 
   /**
    * Render rough.js circle with token-based styling
@@ -106,9 +110,13 @@ export function NodeComponent({ node }: NodeComponentProps) {
 
   /**
    * Drag gesture for node movement
+   * Disabled when editing mode is active
    */
   const dragBind = useDrag(
     ({ delta: [dx, dy], first }) => {
+      // Disable drag when in editing mode
+      if (isEditing) return;
+
       if (first) return;
 
       const adjustedDx = dx / zoom;
@@ -185,27 +193,54 @@ export function NodeComponent({ node }: NodeComponentProps) {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
-      // Regular tap
-      handleTap();
+      // Regular click
+      handleClick();
     }
   };
 
   /**
-   * Handle node tap
-   * T071: Check if in connecting mode, create edge if so
+   * Handle single click - Select node and show FloatingToolbar
    */
-  const handleTap = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // IMPORTANT: Prevent event propagation to Canvas
+    e.stopPropagation();
+
+    // Priority 0: Exit editing mode if clicking a different node
+    if (editingNodeId && editingNodeId !== node.id) {
+      setEditingNode(null);
+      // Continue to select this node
+    }
+
+    // Priority 1: Connecting mode (create edge)
     if (connectingFrom && connectingFrom !== node.id) {
-      // T071: Create edge from connectingFrom to this node
       createEdge(connectingFrom, node.id);
       setConnectingFrom(null);
-    } else if (connectMode) {
-      onNodeSelected(node.id);
-    } else {
-      // Normal tap: select and edit
-      setSelectedNode(node.id);
-      setEditingNode(node.id);
+      return;
     }
+
+    // Priority 2: Link mode (from LinkModeButton)
+    if (connectMode) {
+      onNodeSelected(node.id);
+      return;
+    }
+
+    // Priority 3: Normal selection (show FloatingToolbar)
+    setSelectedNode(node.id);
+  };
+
+  /**
+   * Handle double click - Enter text editing mode
+   */
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    // IMPORTANT: Prevent event propagation to Canvas (prevent new node creation)
+    e.stopPropagation();
+
+    // Ignore double-click if in connecting mode
+    if (connectingFrom) {
+      return;
+    }
+
+    setEditingNode(node.id);
   };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -216,19 +251,14 @@ export function NodeComponent({ node }: NodeComponentProps) {
     setEditingNode(null);
   };
 
-  /**
-   * T081: Context menu handler - open StylePanel on right-click
-   */
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setShowStylePanel(true);
-  };
+  // Determine cursor style based on state
+  const cursorStyle = isEditing ? 'text' : isConnectingSource ? 'crosshair' : 'grab';
 
   return (
     <>
       <g
         {...dragBind()}
-        style={{ cursor: isConnectingSource ? 'crosshair' : 'grab', touchAction: 'none' }}
+        style={{ cursor: cursorStyle, touchAction: 'none' }}
       >
         {/* Rough.js rectangle */}
         <svg
@@ -240,6 +270,34 @@ export function NodeComponent({ node }: NodeComponentProps) {
           style={{ overflow: 'visible', pointerEvents: 'none' }}
         />
 
+        {/* Selection highlight (background) */}
+        {isSelected && !isEditing && (
+          <rect
+            x={node.position.x - 5}
+            y={node.position.y - 5}
+            width={width + 10}
+            height={height + 10}
+            fill="rgba(59, 130, 246, 0.1)"
+            rx={8}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+
+        {/* Editing mode border (strong visual feedback) */}
+        {isEditing && (
+          <rect
+            x={node.position.x - 3}
+            y={node.position.y - 3}
+            width={width + 6}
+            height={height + 6}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            rx={8}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+
         {/* Clickable area */}
         <rect
           x={node.position.x}
@@ -247,8 +305,8 @@ export function NodeComponent({ node }: NodeComponentProps) {
           width={width}
           height={height}
           fill="transparent"
-          onClick={handleTap}
-          onContextMenu={handleContextMenu}
+          onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={() => {
@@ -330,20 +388,25 @@ export function NodeComponent({ node }: NodeComponentProps) {
         </foreignObject>
       </g>
 
-      {/* T081: StylePanel - shown on right-click */}
-      {showStylePanel && (
+      {/* FloatingToolbar - shown when node is selected */}
+      {showFloatingToolbar && (
         <foreignObject
           x={0}
           y={0}
-          width="100%"
-          height="100%"
-          style={{ pointerEvents: 'auto' }}
+          width={window.innerWidth}
+          height={window.innerHeight}
+          style={{ pointerEvents: 'none', overflow: 'visible' }}
         >
-          <StylePanel
-            nodeId={node.id}
-            currentStyle={node.style}
-            onClose={() => setShowStylePanel(false)}
-          />
+          <div style={{ pointerEvents: 'auto' }}>
+            <FloatingToolbar
+              nodeId={node.id}
+              currentStyle={node.style}
+              position={node.position}
+              zoom={zoom}
+              pan={pan}
+              onClose={() => setSelectedNode(null)}
+            />
+          </div>
         </foreignObject>
       )}
     </>
