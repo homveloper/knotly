@@ -4,7 +4,7 @@ import rough from 'roughjs';
 import { useCanvasStore } from '../store/canvasStore';
 import { useLinkMode } from './LinkModeButton';
 import { parseTokens } from '../utils/tokenParser';
-import { findNodeAtPosition } from '../utils/canvasHelpers';
+import { findNodeAtPosition, estimateNodeSize } from '../utils/canvasHelpers';
 import { FloatingToolbar } from './FloatingToolbar';
 import type { Node } from '../types/canvas';
 
@@ -50,6 +50,7 @@ export function NodeComponent({ node }: NodeComponentProps) {
   const { connectMode, onNodeSelected } = useLinkMode();
   const svgRef = useRef<SVGSVGElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textContentRef = useRef<HTMLDivElement>(null); // For DOM measurement
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Parse token-based style
@@ -58,15 +59,29 @@ export function NodeComponent({ node }: NodeComponentProps) {
     [node.style, tokenDefinitions]
   );
 
-  // Default style values
-  const width = parsedStyle.width || 200;
-  const height = parsedStyle.height || 140;
+  // Extract style properties
   const fontSize = parsedStyle.fontSize || 16;
   const fontWeight = parsedStyle.fontWeight || 400;
   const stroke = parsedStyle.stroke || '#ca8a04';
   const fill = parsedStyle.fill || '#fef9c3';
   const strokeWidth = parsedStyle.strokeWidth || 2;
   const roughness = parsedStyle.roughness || 1.0;
+  const shape = parsedStyle.shape || 'none'; // Default: no shape (text only)
+
+  // Calculate node size: use measured size if available, otherwise estimate
+  let width: number;
+  let height: number;
+
+  if (node.measuredSize) {
+    // Use cached measurement from store
+    width = node.measuredSize.width;
+    height = node.measuredSize.height;
+  } else {
+    // Estimate from content (hybrid approach - Phase 1)
+    const estimated = estimateNodeSize(node.content, fontSize);
+    width = estimated.width;
+    height = estimated.height;
+  }
 
   // Determine selection and editing states
   const isSelected = selectedNodeId === node.id;
@@ -79,12 +94,17 @@ export function NodeComponent({ node }: NodeComponentProps) {
   const showFloatingToolbar = isSelected && !isEditing && !connectingFrom;
 
   /**
-   * Render rough.js circle with token-based styling
+   * Render rough.js shape based on token-based styling
+   * Shape can be: 'none', 'rect', 'circle', 'rounded'
    */
   useEffect(() => {
     if (!svgRef.current) return;
 
     svgRef.current.replaceChildren();
+
+    // If shape is 'none', don't render any shape (text only)
+    if (shape === 'none') return;
+
     const rc = rough.svg(svgRef.current);
 
     // Generate seed from node ID for consistent rendering
@@ -95,18 +115,38 @@ export function NodeComponent({ node }: NodeComponentProps) {
     }
     const seed = Math.abs(hash);
 
-    // Render rectangle (not circle) with token-defined dimensions
-    const rect = rc.rectangle(0, 0, width, height, {
+    const shapeOptions = {
       fill,
-      fillStyle: 'solid',
+      fillStyle: 'solid' as const,
       stroke: isConnectingSource ? '#3b82f6' : stroke, // Blue when connecting
       strokeWidth: isConnectingSource ? strokeWidth + 2 : strokeWidth,
       roughness,
       seed,
-    });
+    };
 
-    svgRef.current.appendChild(rect);
-  }, [width, height, fill, stroke, strokeWidth, roughness, node.id, isConnectingSource]);
+    // Render shape based on token
+    let shapeElement: SVGElement;
+    if (shape === 'rect') {
+      shapeElement = rc.rectangle(0, 0, width, height, shapeOptions);
+    } else if (shape === 'circle') {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) / 2;
+      shapeElement = rc.circle(centerX, centerY, radius * 2, shapeOptions);
+    } else if (shape === 'rounded') {
+      // Rounded rectangle with 16px border radius
+      shapeElement = rc.rectangle(0, 0, width, height, {
+        ...shapeOptions,
+        // @ts-ignore - rough.js doesn't have proper types for this
+        bowing: 0.5,
+      });
+    } else {
+      // Fallback to rectangle
+      shapeElement = rc.rectangle(0, 0, width, height, shapeOptions);
+    }
+
+    svgRef.current.appendChild(shapeElement);
+  }, [width, height, fill, stroke, strokeWidth, roughness, shape, node.id, isConnectingSource]);
 
   /**
    * Drag gesture for node movement
@@ -167,6 +207,31 @@ export function NodeComponent({ node }: NodeComponentProps) {
       preventDefault: true,
     }
   );
+
+  /**
+   * DOM measurement for accurate node sizing (hybrid approach - Phase 2)
+   * Measures actual text content and updates store with measured size
+   */
+  useEffect(() => {
+    // Only measure when not editing to avoid flickering
+    if (!isEditing && textContentRef.current) {
+      const rect = textContentRef.current.getBoundingClientRect();
+      const measuredWidth = Math.max(100, Math.min(800, rect.width + 20)); // +20px for padding
+      const measuredHeight = Math.max(60, Math.min(600, rect.height + 20));
+
+      // Update store if size changed significantly (avoid unnecessary updates)
+      const sizeChanged =
+        !node.measuredSize ||
+        Math.abs(node.measuredSize.width - measuredWidth) > 5 ||
+        Math.abs(node.measuredSize.height - measuredHeight) > 5;
+
+      if (sizeChanged) {
+        updateNode(node.id, {
+          measuredSize: { width: measuredWidth, height: measuredHeight },
+        });
+      }
+    }
+  }, [node.content, fontSize, isEditing, node.id, node.measuredSize, updateNode]);
 
   /**
    * Focus textarea when entering edit mode
@@ -298,13 +363,15 @@ export function NodeComponent({ node }: NodeComponentProps) {
           />
         )}
 
-        {/* Clickable area */}
+        {/* Clickable area - also serves as Z-order background layer */}
+        {/* fill="#fafafa" (Canvas background color) ensures this rect covers connection lines */}
+        {/* Even when shape-none, this rect acts as a photoshop-like layer */}
         <rect
           x={node.position.x}
           y={node.position.y}
           width={width}
           height={height}
-          fill="transparent"
+          fill="#fafafa"
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
           onMouseDown={handleMouseDown}
@@ -365,6 +432,7 @@ export function NodeComponent({ node }: NodeComponentProps) {
             />
           ) : (
             <div
+              ref={textContentRef}
               style={{
                 width: '100%',
                 height: '100%',

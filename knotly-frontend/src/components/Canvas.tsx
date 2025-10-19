@@ -4,6 +4,7 @@ import { useCanvasStore } from '../store/canvasStore';
 import { NodeComponent } from './NodeComponent';
 import { EdgeComponent } from './EdgeComponent';
 import { GridBackground } from './GridBackground';
+import { getNodeCenter } from '../utils/canvasHelpers';
 
 /**
  * Canvas Component - Interactive SVG canvas for graph editor
@@ -53,6 +54,7 @@ export const Canvas: React.FC = () => {
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
   const editingNodeId = useCanvasStore((state) => state.editingNodeId);
   const connectingFrom = useCanvasStore((state) => state.connectingFrom);
+  const tokenDefinitions = useCanvasStore((state) => state.tokenDefinitions);
   const setZoom = useCanvasStore((state) => state.setZoom);
   const setPan = useCanvasStore((state) => state.setPan);
   const createNode = useCanvasStore((state) => state.createNode);
@@ -232,14 +234,13 @@ export const Canvas: React.FC = () => {
           const sourceNode = nodes.find((n) => n.id === connectingFrom);
           if (!sourceNode) return null;
 
-          // Calculate center of source node (assuming token-based dimensions)
-          const sourceX = sourceNode.position.x + 100; // Default width/2
-          const sourceY = sourceNode.position.y + 70;  // Default height/2
+          // Calculate center of source node for connection line
+          const sourceCenter = getNodeCenter(sourceNode, tokenDefinitions);
 
           return (
             <line
-              x1={sourceX}
-              y1={sourceY}
+              x1={sourceCenter.x}
+              y1={sourceCenter.y}
               x2={mousePos.x}
               y2={mousePos.y}
               stroke="#3b82f6"

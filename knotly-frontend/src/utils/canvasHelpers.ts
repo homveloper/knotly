@@ -1,6 +1,7 @@
 // Canvas helper utilities for node/edge calculations
 
-import type { Node } from '../types/canvas';
+import type { Node, TokenDefinitions } from '../types/canvas';
+import { parseTokens } from './tokenParser';
 
 /**
  * Find node at a given canvas position
@@ -67,3 +68,73 @@ export function screenToCanvasCoords(
     y: (relativeY - pan.y) / zoom,
   };
 }
+
+/**
+ * Estimate node size based on content length
+ * Used as initial size before DOM measurement
+ *
+ * @param content - Text content of node
+ * @param fontSize - Font size in pixels
+ * @returns Estimated {width, height} in pixels
+ */
+export function estimateNodeSize(
+  content: string,
+  fontSize: number
+): { width: number; height: number } {
+  if (!content || content.trim() === '') {
+    // Empty content: minimum size
+    return { width: 100, height: 60 };
+  }
+
+  const lines = content.split('\n');
+  const maxLineLength = Math.max(...lines.map((l) => l.length), 5);
+  const lineCount = Math.max(lines.length, 1);
+
+  // Average character width: ~0.6em for mixed Korean/English
+  const charWidth = fontSize * 0.6;
+  const lineHeight = fontSize * 1.5;
+
+  const estimatedWidth = Math.max(100, Math.min(800, maxLineLength * charWidth + 20));
+  const estimatedHeight = Math.max(60, Math.min(600, lineCount * lineHeight + 20));
+
+  return {
+    width: estimatedWidth,
+    height: estimatedHeight,
+  };
+}
+
+/**
+ * Calculate the center point of a node
+ * Parses node style tokens to get width/height, then calculates center
+ *
+ * @param node - Node to calculate center for
+ * @param tokenDefinitions - Token library for parsing style
+ * @returns Center coordinates {x, y} in canvas space
+ */
+export function getNodeCenter(
+  node: Node,
+  tokenDefinitions: TokenDefinitions
+): { x: number; y: number } {
+  // Use measured size if available, otherwise estimate
+  let width: number;
+  let height: number;
+
+  if (node.measuredSize) {
+    width = node.measuredSize.width;
+    height = node.measuredSize.height;
+  } else {
+    // Estimate from content
+    const parsedStyle = parseTokens(node.style, tokenDefinitions);
+    const fontSize = parsedStyle.fontSize || 16;
+    const estimated = estimateNodeSize(node.content, fontSize);
+    width = estimated.width;
+    height = estimated.height;
+  }
+
+  // Calculate center from top-left position
+  return {
+    x: node.position.x + width / 2,
+    y: node.position.y + height / 2,
+  };
+}
+
