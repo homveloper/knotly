@@ -22,11 +22,7 @@ export interface Node {
 
   // Visual Style
   type: 'circle'; // Shape type (only circles in this phase, future: rectangle, cloud, etc)
-  style: {
-    backgroundColor: string; // Hex color: '#FFE082' (yellow), '#90CAF9' (sky blue), '#A5D6A7' (mint)
-    strokeColor: string; // Border color, default '#000'
-    strokeWidth: number; // Border thickness in pixels, default 2
-  };
+  style: string; // Space-separated token names (e.g., "color-yellow h4 neat")
 
   // Metadata
   createdAt: number; // Unix timestamp in milliseconds
@@ -36,7 +32,7 @@ export interface Node {
 /**
  * Represents a directional connection between two nodes
  * - Stored directionally (from → to) for data modeling
- * - Rendered as bidirectional dashed lines with no arrow heads
+ * - Rendered as bidirectional lines with hand-drawn appearance (rough.js)
  * - Links transform isolated nodes into an interconnected graph structure
  */
 export interface Edge {
@@ -48,7 +44,7 @@ export interface Edge {
   toId: string; // Target node ID (must reference existing Node)
 
   // Visual Style
-  lineStyle: 'dashed'; // Line pattern (only dashed in this phase, future: solid, curved, arrow)
+  lineStyle: 'solid' | 'dashed'; // Line pattern (rendered with rough.js)
 
   // Metadata
   createdAt: number; // Unix timestamp in milliseconds
@@ -88,10 +84,20 @@ export interface CanvasStore {
   gridEnabled: boolean;
   snapEnabled: boolean;
   selectedEdgeId: string | null; // Current selected edge for visual highlighting
+  selectedNodeId: string | null; // Current selected node for auto-connect workflow
+  editingNodeId: string | null; // Node currently being edited (text input active)
+  connectingFrom: string | null; // Node ID when in drag-to-connect mode
+
+  // File Management State
+  tokenDefinitions: TokenDefinitions; // Current token library (DEFAULT_TOKENS + custom)
+  currentFilePath: string | null; // Filename or null for unsaved notes
+  currentFileHandle: FileSystemFileHandle | null; // File handle for save operations
+  hasUnsavedChanges: boolean; // Track dirty state for unsaved changes indicator
+  recentFiles: string[]; // Last 5 opened file paths (persisted in localStorage)
 
   // === Node Actions ===
-  /** Create new node at canvas position with default style (yellow background) */
-  createNode: (position: { x: number; y: number }) => void;
+  /** Create new node at canvas position, optionally auto-connect to selected node */
+  createNode: (position: { x: number; y: number }, selectedNodeId?: string | null) => void;
 
   /** Update node fields (content, style, type, position) */
   updateNode: (id: string, updates: Partial<Omit<Node, 'id' | 'createdAt'>>) => void;
@@ -124,4 +130,54 @@ export interface CanvasStore {
 
   /** Toggle snap-to-grid behavior */
   toggleSnap: () => void;
+
+  // === Node Selection Actions ===
+  /** Set selected node (for auto-connect workflow) */
+  setSelectedNode: (id: string | null) => void;
+
+  /** Set editing node (activate text input) */
+  setEditingNode: (id: string | null) => void;
+
+  /** Set connecting mode (drag-to-connect) */
+  setConnectingFrom: (id: string | null) => void;
+
+  // === File Management Actions ===
+  /** Mark canvas as having unsaved changes */
+  markDirty: () => void;
+
+  /** Add file to recent files list (max 5, persisted to localStorage) */
+  addRecentFile: (filePath: string) => void;
+
+  /** Save canvas state to file (creates new file if handle is null) */
+  saveFile: (fileHandle?: FileSystemFileHandle | null) => Promise<void>;
+
+  /** Load canvas state from file */
+  loadFile: (fileHandle: FileSystemFileHandle | File) => Promise<void>;
+
+  /** Initialize new note with default tokens */
+  newNote: () => void;
+}
+
+/**
+ * Token definitions mapping token names to style properties or composite references
+ * Used by the token parser to resolve style strings like "color-blue h4 neat"
+ */
+export type TokenDefinitions = {
+  [tokenName: string]: StyleObject | string;
+};
+
+/**
+ * Style properties that can be applied to a node via tokens
+ * Atomic tokens define these properties directly
+ * Composite tokens reference other tokens (resolved recursively)
+ */
+export interface StyleObject {
+  stroke?: string; // CSS color for outline
+  fill?: string; // CSS color for background
+  strokeWidth?: number; // Line thickness (1-10px)
+  width?: number; // Node width (80-400px)
+  height?: number; // Node height (60-300px)
+  fontSize?: number; // Text size (10-32px)
+  fontWeight?: number; // Text weight (100-900)
+  roughness?: number; // Hand-drawn feel (0=smooth, 3=very rough)
 }
