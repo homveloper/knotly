@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { useCanvasStore } from '../store/canvasStore';
 import { NodeComponent } from './NodeComponent';
@@ -50,8 +50,14 @@ export const Canvas: React.FC = () => {
   const edges = useCanvasStore((state) => state.edges);
   const zoom = useCanvasStore((state) => state.zoom);
   const pan = useCanvasStore((state) => state.pan);
+  const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
+  const connectingFrom = useCanvasStore((state) => state.connectingFrom);
   const setZoom = useCanvasStore((state) => state.setZoom);
   const setPan = useCanvasStore((state) => state.setPan);
+  const createNode = useCanvasStore((state) => state.createNode);
+
+  // Track mouse position for temporary connection line (T068)
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   // SVG ref for gesture binding
   const svgRef = useRef<SVGSVGElement>(null);
@@ -110,10 +116,46 @@ export const Canvas: React.FC = () => {
     onDrag: handleDrag,
   });
 
+  // Double-click handler: create new node with auto-connect
+  const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Get click position in screen coordinates
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+
+    // Transform to canvas coordinates (account for pan and zoom)
+    const canvasX = (screenX - pan.x) / zoom;
+    const canvasY = (screenY - pan.y) / zoom;
+
+    // Create node at click position, auto-connect to selected node
+    createNode({ x: canvasX, y: canvasY }, selectedNodeId);
+  };
+
+  // Mouse move handler: track cursor position for temporary connection line (T068)
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!connectingFrom) {
+      setMousePos(null);
+      return;
+    }
+
+    // Get mouse position in screen coordinates
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+
+    // Transform to canvas coordinates (account for pan and zoom)
+    const canvasX = (screenX - pan.x) / zoom;
+    const canvasY = (screenY - pan.y) / zoom;
+
+    setMousePos({ x: canvasX, y: canvasY });
+  };
+
   return (
     <svg
       ref={svgRef}
       {...bind()}
+      onDoubleClick={handleDoubleClick}
+      onMouseMove={handleMouseMove}
       width="100%"
       height="100%"
       viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}
@@ -136,6 +178,29 @@ export const Canvas: React.FC = () => {
         {edges.map((edge) => (
           <EdgeComponent key={edge.id} edge={edge} />
         ))}
+
+        {/* T068: Temporary connection line when in connecting mode */}
+        {connectingFrom && mousePos && (() => {
+          const sourceNode = nodes.find((n) => n.id === connectingFrom);
+          if (!sourceNode) return null;
+
+          // Calculate center of source node (assuming token-based dimensions)
+          const sourceX = sourceNode.position.x + 100; // Default width/2
+          const sourceY = sourceNode.position.y + 70;  // Default height/2
+
+          return (
+            <line
+              x1={sourceX}
+              y1={sourceY}
+              x2={mousePos.x}
+              y2={mousePos.y}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+              opacity={0.6}
+            />
+          );
+        })()}
 
         {/* Render all nodes from store - rendered last so they appear on top */}
         {/* Each node is a 120px circle with text content, draggable, and editable */}

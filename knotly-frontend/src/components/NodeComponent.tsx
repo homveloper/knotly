@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useDrag } from '@use-gesture/react';
 import rough from 'roughjs';
 import { useCanvasStore } from '../store/canvasStore';
 import { useLinkMode } from './LinkModeButton';
-import { ContextMenu } from './ContextMenu';
-import { MentionSheet } from './MentionSheet';
+import { parseTokens } from '../utils/tokenParser';
+import { findNodeAtPosition } from '../utils/canvasHelpers';
+import { StylePanel } from './StylePanel';
 import type { Node } from '../types/canvas';
 
 interface NodeComponentProps {
@@ -15,100 +16,104 @@ interface NodeComponentProps {
  * NodeComponent - Renders a single node in the canvas
  *
  * Features:
- * - 120px diameter circle rendered with rough.js (hand-drawn style)
+ * - Token-based styling (e.g., "color-yellow h4 neat")
+ * - Hand-drawn circle rendered with rough.js
  * - Text editing via foreignObject (HTML textarea)
- * - Tap to enter/exit edit mode
- * - Drag to move nodes (smooth following)
- * - Long-press (500ms) opens context menu for color and deletion
- * - Text wrapping with vertical scroll for overflow
- * - Automatic Nanum Pen Script font rendering
+ * - Tap to select/edit node
+ * - Drag to move nodes
+ * - Drag from edge handle to create connections
+ * - Long-press for connecting mode (mobile)
  *
- * Rendering Strategy:
- * - rough.js circle drawn to SVG via useEffect
- * - foreignObject for text input/display (HTML inside SVG)
- * - useEffect cleanup to prevent duplicate circles
- * - ContextMenu rendered conditionally on long-press
- *
- * Performance:
- * - memo candidate if NodeComponent becomes bottleneck
- * - useDrag hook for smooth gesture handling
- * - Long-press detection with setTimeout (500ms threshold)
+ * Phase 6 Additions:
+ * - Edge drag handle (transparent circle at border)
+ * - Drag-to-connect gestures
+ * - Long-press-to-connect (mobile)
+ * - Visual feedback when in connecting mode
  */
-
 export function NodeComponent({ node }: NodeComponentProps) {
-  const { updateNode, moveNode, createEdge, zoom } = useCanvasStore();
+  const {
+    nodes,
+    updateNode,
+    moveNode,
+    createEdge,
+    setSelectedNode,
+    setEditingNode,
+    editingNodeId,
+    connectingFrom,
+    setConnectingFrom,
+    tokenDefinitions,
+    zoom,
+    pan,
+  } = useCanvasStore();
+
   const { connectMode, onNodeSelected } = useLinkMode();
-  const [isEditing, setIsEditing] = useState(false);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [showMentionSheet, setShowMentionSheet] = useState(false);
-  const [mentionFilterText, setMentionFilterText] = useState('');
   const svgRef = useRef<SVGSVGElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showStylePanel, setShowStylePanel] = useState(false);
 
-  // Node dimensions (120px diameter per spec)
-  const NODE_RADIUS = 60; // Half of 120px diameter
-  const NODE_SIZE = 120;
+  // Parse token-based style
+  const parsedStyle = useMemo(
+    () => parseTokens(node.style, tokenDefinitions),
+    [node.style, tokenDefinitions]
+  );
+
+  // Default style values
+  const width = parsedStyle.width || 200;
+  const height = parsedStyle.height || 140;
+  const fontSize = parsedStyle.fontSize || 16;
+  const fontWeight = parsedStyle.fontWeight || 400;
+  const stroke = parsedStyle.stroke || '#ca8a04';
+  const fill = parsedStyle.fill || '#fef9c3';
+  const strokeWidth = parsedStyle.strokeWidth || 2;
+  const roughness = parsedStyle.roughness || 1.0;
+
+  // Determine if this node is being edited
+  const isEditing = editingNodeId === node.id;
+
+  // Visual feedback: highlight if this is the connecting source
+  const isConnectingSource = connectingFrom === node.id;
 
   /**
-   * Render rough.js circle
-   * - Creates new circle on position or style changes
-   * - Uses seed from node ID for consistent rendering
-   * - Fills with backgroundColor, strokes with strokeColor
+   * Render rough.js circle with token-based styling
    */
   useEffect(() => {
     if (!svgRef.current) return;
 
-    // Clear previous circle
     svgRef.current.replaceChildren();
-
-    // Create new circle with rough.js
     const rc = rough.svg(svgRef.current);
 
-    // Simple hash function for consistent seed from node ID
+    // Generate seed from node ID for consistent rendering
     let hash = 0;
     for (let i = 0; i < node.id.length; i++) {
       hash = ((hash << 5) - hash) + node.id.charCodeAt(i);
-      hash |= 0; // Convert to 32-bit integer
+      hash |= 0;
     }
     const seed = Math.abs(hash);
 
-    // Draw circle at center of SVG (local coordinates)
-    // SVG wrapper is positioned at (node.position.x - NODE_RADIUS, node.position.y - NODE_RADIUS)
-    // So circle center should be at (NODE_RADIUS, NODE_RADIUS) within the SVG
-    // This results in actual position (node.position.x, node.position.y) on canvas
-    const circle = rc.circle(NODE_RADIUS, NODE_RADIUS, NODE_SIZE, {
-      fill: node.style.backgroundColor,
+    // Render rectangle (not circle) with token-defined dimensions
+    const rect = rc.rectangle(0, 0, width, height, {
+      fill,
       fillStyle: 'solid',
-      stroke: node.style.strokeColor,
-      strokeWidth: node.style.strokeWidth,
-      roughness: 1.5, // Hand-drawn appearance
-      seed, // Consistent rendering
+      stroke: isConnectingSource ? '#3b82f6' : stroke, // Blue when connecting
+      strokeWidth: isConnectingSource ? strokeWidth + 2 : strokeWidth,
+      roughness,
+      seed,
     });
 
-    svgRef.current.appendChild(circle);
-  }, [node.position, node.style, node.id]);
+    svgRef.current.appendChild(rect);
+  }, [width, height, fill, stroke, strokeWidth, roughness, node.id, isConnectingSource]);
 
   /**
    * Drag gesture for node movement
-   * - Uses delta (relative change) instead of offset
-   * - Allows dragging from any point on node (center or edge)
-   * - Adjusts delta based on zoom level for consistent pointer speed
-   * - When zoomed in (2x), delta is halved so pointer speed matches node movement speed
-   * - Calls moveNode action in store
    */
   const dragBind = useDrag(
     ({ delta: [dx, dy], first }) => {
-      // Skip first frame to avoid initial jitter
       if (first) return;
 
-      // Adjust mouse delta based on current zoom level
-      // This ensures pointer speed = node movement speed regardless of zoom
-      // Example: if zoom=2x, delta should be halved so node doesn't move faster than cursor
       const adjustedDx = dx / zoom;
       const adjustedDy = dy / zoom;
 
-      // Calculate new position relative to current position
       const newX = node.position.x + adjustedDx;
       const newY = node.position.y + adjustedDy;
       moveNode(node.id, { x: newX, y: newY });
@@ -119,263 +124,228 @@ export function NodeComponent({ node }: NodeComponentProps) {
   );
 
   /**
-   * Handle text area focus
-   * When entering edit mode, focus textarea and position cursor at end
+   * Edge drag handle gesture
+   * T065: Sets connectingFrom on drag start, creates edge on drag end
+   */
+  const edgeDragBind = useDrag(
+    ({ first, last, xy: [screenX, screenY] }) => {
+      if (first) {
+        // Start connecting mode
+        setConnectingFrom(node.id);
+        return;
+      }
+
+      if (last) {
+        // End connecting mode
+        // T067: Find target node at release position
+        if (connectingFrom && svgRef.current) {
+          const rect = svgRef.current.ownerSVGElement?.getBoundingClientRect();
+          if (rect) {
+            const canvasX = (screenX - rect.left - pan.x) / zoom;
+            const canvasY = (screenY - rect.top - pan.y) / zoom;
+
+            const targetNode = findNodeAtPosition(nodes, canvasX, canvasY, connectingFrom);
+            if (targetNode) {
+              createEdge(connectingFrom, targetNode.id);
+            }
+          }
+        }
+
+        setConnectingFrom(null);
+        return;
+      }
+    },
+    {
+      preventDefault: true,
+    }
+  );
+
+  /**
+   * Focus textarea when entering edit mode
    */
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
-      // Position cursor at end of text
-      textareaRef.current.setSelectionRange(
-        node.content.length,
-        node.content.length
-      );
+      textareaRef.current.setSelectionRange(node.content.length, node.content.length);
     }
   }, [isEditing, node.content]);
 
   /**
-   * Handle mouse down for long-press detection
-   * - 500ms threshold triggers context menu
-   * - Cleared on mouse up or drag
+   * T069: Long-press detection for connecting mode (mobile)
    */
   const handleMouseDown = () => {
     longPressTimerRef.current = setTimeout(() => {
-      setShowContextMenu(true);
+      // T070: Set connecting mode with visual feedback
+      setConnectingFrom(node.id);
       longPressTimerRef.current = null;
-    }, 500); // 500ms long-press threshold
+    }, 500); // 500ms threshold
   };
 
-  /**
-   * Handle mouse up to cancel long-press
-   * - If timer still active, treat as regular tap
-   */
   const handleMouseUp = () => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
-      // Handle regular tap
+      // Regular tap
       handleTap();
     }
   };
 
   /**
-   * Handle node tap for edit mode or link mode
-   * - If link mode active: report node selection to LinkModeButton
-   * - Otherwise: activate text editing
+   * Handle node tap
+   * T071: Check if in connecting mode, create edge if so
    */
   const handleTap = () => {
-    if (connectMode) {
-      // Link mode is active - report this node selection
+    if (connectingFrom && connectingFrom !== node.id) {
+      // T071: Create edge from connectingFrom to this node
+      createEdge(connectingFrom, node.id);
+      setConnectingFrom(null);
+    } else if (connectMode) {
       onNodeSelected(node.id);
     } else {
-      // Normal mode - enter text editing
-      setIsEditing(true);
+      // Normal tap: select and edit
+      setSelectedNode(node.id);
+      setEditingNode(node.id);
     }
   };
 
-  /**
-   * Handle text content changes
-   * - Updates node in store as user types
-   * - Detects @ symbol to trigger mention sheet
-   * - Extracts filter text after @ for dynamic filtering
-   * - Closes mention sheet on backspace if no @ remains
-   */
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    updateNode(node.id, { content: newContent });
-
-    // Check if content contains @ symbol
-    const atIndex = newContent.lastIndexOf('@');
-
-    if (atIndex !== -1) {
-      // @ symbol found - extract filter text after it
-      const filterText = newContent.substring(atIndex + 1);
-
-      // Check if we're still in mention mode (text after @ without spaces)
-      // Mention mode ends when user presses space or backspace everything after @
-      if (!filterText.includes(' ')) {
-        setShowMentionSheet(true);
-        setMentionFilterText(filterText);
-      } else {
-        // Space after @ - close mention sheet
-        setShowMentionSheet(false);
-        setMentionFilterText('');
-      }
-    } else {
-      // No @ symbol found - close mention sheet
-      setShowMentionSheet(false);
-      setMentionFilterText('');
-    }
+    updateNode(node.id, { content: e.target.value });
   };
 
-  /**
-   * Handle exiting edit mode
-   * Blur (unfocus) text area triggers exit
-   */
   const handleBlur = () => {
-    setIsEditing(false);
+    setEditingNode(null);
   };
 
   /**
-   * Handle mention sheet node selection
-   * - Creates edge from current node to selected node
-   * - Removes @ symbol and filter text from content
-   * - Closes mention sheet
+   * T081: Context menu handler - open StylePanel on right-click
    */
-  const handleMentionSelect = (selectedNodeId: string) => {
-    // Create edge from current node to selected node
-    createEdge(node.id, selectedNodeId);
-
-    // Remove @ symbol and filter text from content
-    const atIndex = node.content.lastIndexOf('@');
-    if (atIndex !== -1) {
-      const contentBeforeAt = node.content.substring(0, atIndex);
-      updateNode(node.id, { content: contentBeforeAt });
-    }
-
-    // Close mention sheet
-    setShowMentionSheet(false);
-    setMentionFilterText('');
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowStylePanel(true);
   };
-
-  /**
-   * Determine if text overflows the 120px circle
-   * Rough estimate: show scroll indicator if content > ~80 chars
-   * Or more accurately: check if content renders beyond space
-   */
-  const hasTextOverflow = node.content.length > 80;
 
   return (
     <>
-      <g {...dragBind()} style={{ cursor: connectMode ? 'pointer' : 'grab', touchAction: 'none' }}>
-      {/* Rough.js circle - visual only, no events */}
-      <svg
-        ref={svgRef}
-        x={node.position.x - NODE_RADIUS}
-        y={node.position.y - NODE_RADIUS}
-        width={NODE_SIZE}
-        height={NODE_SIZE}
-        style={{ overflow: 'visible', pointerEvents: 'none' }}
-      />
-
-      {/* Transparent clickable/draggable area covering entire node */}
-      {/* This rect receives all drag, tap, and long-press events */}
-      <rect
-        x={node.position.x - NODE_RADIUS}
-        y={node.position.y - NODE_RADIUS}
-        width={NODE_SIZE}
-        height={NODE_SIZE}
-        fill="transparent"
-        onClick={handleTap}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => {
-          if (longPressTimerRef.current) {
-            clearTimeout(longPressTimerRef.current);
-            longPressTimerRef.current = null;
-          }
-        }}
-      />
-
-      {/* Text content area using SVG foreignObject */}
-      {/* foreignObject allows HTML content (textarea/div) inside SVG */}
-      <foreignObject
-        x={node.position.x - NODE_RADIUS + 10} // Padding from circle edge
-        y={node.position.y - NODE_RADIUS + 10}
-        width={NODE_SIZE - 20} // Padding on both sides
-        height={NODE_SIZE - 20}
-        style={{
-          cursor: 'text',
-          pointerEvents: isEditing ? 'auto' : 'none', // Events only when editing
-        }}
+      <g
+        {...dragBind()}
+        style={{ cursor: isConnectingSource ? 'crosshair' : 'grab', touchAction: 'none' }}
       >
-        {isEditing ? (
-          // Editing mode: textarea for input
-          <textarea
-            ref={textareaRef}
-            value={node.content}
-            onChange={handleTextChange}
-            onBlur={handleBlur}
-            style={{
-              width: '100%',
-              height: '100%',
-              padding: '4px',
-              fontFamily: 'Nanum Pen Script, cursive',
-              fontSize: '16px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              resize: 'none',
-              overflow: 'hidden', // Hide scrollbar but allow overflow
-              overflowY: 'auto',
-              textAlign: 'center',
-              color: '#333',
-            }}
-            aria-label={`Edit node: ${node.content || 'empty'}`}
+        {/* Rough.js rectangle */}
+        <svg
+          ref={svgRef}
+          x={node.position.x}
+          y={node.position.y}
+          width={width}
+          height={height}
+          style={{ overflow: 'visible', pointerEvents: 'none' }}
+        />
+
+        {/* Clickable area */}
+        <rect
+          x={node.position.x}
+          y={node.position.y}
+          width={width}
+          height={height}
+          fill="transparent"
+          onClick={handleTap}
+          onContextMenu={handleContextMenu}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            if (longPressTimerRef.current) {
+              clearTimeout(longPressTimerRef.current);
+              longPressTimerRef.current = null;
+            }
+          }}
+        />
+
+        {/* T064: Edge drag handle (transparent circle at right edge) */}
+        <circle
+          {...edgeDragBind()}
+          cx={node.position.x + width}
+          cy={node.position.y + height / 2}
+          r={10}
+          fill="transparent"
+          stroke={isConnectingSource ? '#3b82f6' : '#999'}
+          strokeWidth={2}
+          style={{ cursor: 'crosshair', opacity: isConnectingSource ? 1 : 0.3 }}
+        />
+
+        {/* Text content */}
+        <foreignObject
+          x={node.position.x + 10}
+          y={node.position.y + 10}
+          width={width - 20}
+          height={height - 20}
+          style={{
+            cursor: 'text',
+            pointerEvents: isEditing ? 'auto' : 'none',
+          }}
+        >
+          {isEditing ? (
+            <textarea
+              ref={textareaRef}
+              value={node.content}
+              onChange={handleTextChange}
+              onBlur={handleBlur}
+              style={{
+                width: '100%',
+                height: '100%',
+                padding: '4px',
+                fontFamily: 'Nanum Pen Script, cursive',
+                fontSize: `${fontSize}px`,
+                fontWeight,
+                backgroundColor: 'transparent',
+                border: 'none',
+                outline: 'none',
+                resize: 'none',
+                overflow: 'hidden',
+                overflowY: 'auto',
+                textAlign: 'center',
+                color: '#333',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                padding: '4px',
+                fontFamily: 'Nanum Pen Script, cursive',
+                fontSize: `${fontSize}px`,
+                fontWeight,
+                color: '#333',
+                textAlign: 'center',
+                overflow: 'hidden',
+                overflowY: 'auto',
+                wordWrap: 'break-word',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span style={{ whiteSpace: 'pre-wrap' }}>{node.content || 'Tap to edit'}</span>
+            </div>
+          )}
+        </foreignObject>
+      </g>
+
+      {/* T081: StylePanel - shown on right-click */}
+      {showStylePanel && (
+        <foreignObject
+          x={0}
+          y={0}
+          width="100%"
+          height="100%"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <StylePanel
+            nodeId={node.id}
+            currentStyle={node.style}
+            onClose={() => setShowStylePanel(false)}
           />
-        ) : (
-          // Display mode: readonly text with scroll indicator
-          <div
-            onClick={handleTap}
-            style={{
-              width: '100%',
-              height: '100%',
-              padding: '4px',
-              fontFamily: 'Nanum Pen Script, cursive',
-              fontSize: '16px',
-              color: '#333',
-              textAlign: 'center',
-              overflow: 'hidden',
-              overflowY: 'auto',
-              wordWrap: 'break-word',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'text',
-              position: 'relative',
-            }}
-          >
-            <span style={{ whiteSpace: 'pre-wrap' }}>
-              {node.content || 'Tap to edit'}
-            </span>
-            {/* Scroll indicator for text overflow */}
-            {hasTextOverflow && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 2,
-                  right: 2,
-                  fontSize: '10px',
-                  color: '#999',
-                }}
-                title="Content overflows - scroll to read more"
-              >
-                ↓
-              </div>
-            )}
-          </div>
-        )}
-      </foreignObject>
-
-    </g>
-
-    {/* Context menu for color and deletion (rendered outside SVG as portal) */}
-    {showContextMenu && (
-      <ContextMenu nodeId={node.id} onClose={() => setShowContextMenu(false)} />
-    )}
-
-    {/* Mention sheet for quick @mention linking */}
-    {showMentionSheet && isEditing && (
-      <MentionSheet
-        currentNodeId={node.id}
-        filterText={mentionFilterText}
-        onSelect={handleMentionSelect}
-        onClose={() => {
-          setShowMentionSheet(false);
-          setMentionFilterText('');
-        }}
-      />
-    )}
-  </>
+        </foreignObject>
+      )}
+    </>
   );
 }
