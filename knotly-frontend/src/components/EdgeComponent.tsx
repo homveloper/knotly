@@ -2,6 +2,7 @@ import { useCanvasStore } from '../store/canvasStore';
 import type { Edge } from '../types/canvas';
 import { useEffect, useRef, useState } from 'react';
 import rough from 'roughjs';
+import { getNodeCenter } from '../utils/canvasHelpers';
 
 /**
  * EdgeComponent - Renders a hand-drawn dashed connection line between two nodes
@@ -28,11 +29,10 @@ interface EdgeComponentProps {
   edge: Edge;
 }
 
-const NODE_RADIUS = 60; // 120px diameter circle radius
-
 export const EdgeComponent: React.FC<EdgeComponentProps> = ({ edge }) => {
   // Store subscriptions
   const nodes = useCanvasStore((state) => state.nodes);
+  const tokenDefinitions = useCanvasStore((state) => state.tokenDefinitions);
   const selectedEdgeId = useCanvasStore((state) => state.selectedEdgeId);
   const selectEdge = useCanvasStore((state) => state.selectEdge);
   const deleteEdge = useCanvasStore((state) => state.deleteEdge);
@@ -54,9 +54,13 @@ export const EdgeComponent: React.FC<EdgeComponentProps> = ({ edge }) => {
     return null;
   }
 
-  // Calculate vector from fromNode to toNode
-  const dx = toNode.position.x - fromNode.position.x;
-  const dy = toNode.position.y - fromNode.position.y;
+  // Calculate node centers for connection line endpoints
+  const fromCenter = getNodeCenter(fromNode, tokenDefinitions);
+  const toCenter = getNodeCenter(toNode, tokenDefinitions);
+
+  // Calculate vector from fromCenter to toCenter
+  const dx = toCenter.x - fromCenter.x;
+  const dy = toCenter.y - fromCenter.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
   // Edge case: prevent division by zero for same-position nodes
@@ -64,14 +68,11 @@ export const EdgeComponent: React.FC<EdgeComponentProps> = ({ edge }) => {
     return null;
   }
 
-  // Calculate line endpoints at circle edges (not at centers)
-  // Direction vector: (dx/distance, dy/distance)
-  // Start: fromNode center + direction * radius
-  // End: toNode center - direction * radius
-  const startX = fromNode.position.x + (dx / distance) * NODE_RADIUS;
-  const startY = fromNode.position.y + (dy / distance) * NODE_RADIUS;
-  const endX = toNode.position.x - (dx / distance) * NODE_RADIUS;
-  const endY = toNode.position.y - (dy / distance) * NODE_RADIUS;
+  // Line endpoints are node centers
+  const startX = fromCenter.x;
+  const startY = fromCenter.y;
+  const endX = toCenter.x;
+  const endY = toCenter.y;
 
   // Generate seed from edge ID for consistent rough.js rendering
   // Same algorithm as NodeComponent: hash the ID string to get deterministic seed

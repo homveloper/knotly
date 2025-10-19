@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://knotly.app/schemas/knotly-file-v1.schema.json",
+  "title": "Knotly Markdown File Format",
+  "description": "JSON Schema for .knotly.md file YAML frontmatter structure (v1.0.0)",
+  "type": "object",
+  "required": ["tokens", "nodes", "edges"],
+  "properties": {
+    "tokens": {
+      "type": "object",
+      "description": "Token definitions (atomic and composite styles)",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*$": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Atomic token: style properties object",
+              "properties": {
+                "stroke": {
+                  "type": "string",
+                  "description": "CSS color for outline",
+                  "pattern": "^(#[0-9a-fA-F]{6}|rgb\\(\\d+,\\s*\\d+,\\s*\\d+\\))$"
+                },
+                "fill": {
+                  "type": "string",
+                  "description": "CSS color for background",
+                  "pattern": "^(#[0-9a-fA-F]{6}|rgb\\(\\d+,\\s*\\d+,\\s*\\d+\\))$"
+                },
+                "strokeWidth": {
+                  "type": "number",
+                  "description": "Line thickness in pixels",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "width": {
+                  "type": "number",
+                  "description": "Node width in pixels",
+                  "minimum": 80,
+                  "maximum": 400
+                },
+                "height": {
+                  "type": "number",
+                  "description": "Node height in pixels",
+                  "minimum": 60,
+                  "maximum": 300
+                },
+                "fontSize": {
+                  "type": "number",
+                  "description": "Font size in pixels",
+                  "minimum": 10,
+                  "maximum": 32
+                },
+                "fontWeight": {
+                  "type": "number",
+                  "description": "Font weight (100-900)",
+                  "minimum": 100,
+                  "maximum": 900,
+                  "multipleOf": 100
+                },
+                "roughness": {
+                  "type": "number",
+                  "description": "Hand-drawn effect intensity (0=smooth, 3=very rough)",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              },
+              "additionalProperties": false,
+              "minProperties": 1
+            },
+            {
+              "type": "string",
+              "description": "Composite token: space-separated token references",
+              "pattern": "^[a-z][a-z0-9-]*(\\s+[a-z][a-z0-9-]*)*$"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Node metadata (position and style)",
+      "items": {
+        "type": "object",
+        "required": ["id", "pos", "style"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique node identifier (UUID or node-{short})",
+            "pattern": "^(node-[a-f0-9]{8}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+          },
+          "pos": {
+            "type": "array",
+            "description": "Canvas position [x, y]",
+            "items": {
+              "type": "number",
+              "minimum": -10000,
+              "maximum": 10000
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "style": {
+            "type": "string",
+            "description": "Space-separated token combination",
+            "pattern": "^([a-z][a-z0-9-]*(\\s+[a-z][a-z0-9-]*)*)?$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Edge connections (compact [fromId, toId] tuples)",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "description": "Node ID reference",
+          "pattern": "^(node-[a-f0-9]{8}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "tokens": {
+        "color-blue": {"stroke": "#2563eb", "fill": "#dbeafe"},
+        "h4": {"width": 200, "height": 140, "fontSize": 16},
+        "neat": {"roughness": 1.0},
+        "heading-primary": "color-blue h3 bold"
+      },
+      "nodes": [
+        {"id": "node-abc12345", "pos": [100, 200], "style": "color-blue h4 neat"},
+        {"id": "node-def67890", "pos": [300, 250], "style": "heading-primary"}
+      ],
+      "edges": [
+        ["node-abc12345", "node-def67890"]
+      ]
+    }
+  ]
+}

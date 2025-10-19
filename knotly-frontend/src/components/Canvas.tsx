@@ -1,9 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { useCanvasStore } from '../store/canvasStore';
 import { NodeComponent } from './NodeComponent';
 import { EdgeComponent } from './EdgeComponent';
 import { GridBackground } from './GridBackground';
+import { getNodeCenter } from '../utils/canvasHelpers';
+import { useLinkMode } from './LinkModeButton';
 
 /**
  * Canvas Component - Interactive SVG canvas for graph editor
@@ -50,11 +52,27 @@ export const Canvas: React.FC = () => {
   const edges = useCanvasStore((state) => state.edges);
   const zoom = useCanvasStore((state) => state.zoom);
   const pan = useCanvasStore((state) => state.pan);
+  const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
+  const editingNodeId = useCanvasStore((state) => state.editingNodeId);
+  const connectingFrom = useCanvasStore((state) => state.connectingFrom);
+  const tokenDefinitions = useCanvasStore((state) => state.tokenDefinitions);
   const setZoom = useCanvasStore((state) => state.setZoom);
   const setPan = useCanvasStore((state) => state.setPan);
+  const createNode = useCanvasStore((state) => state.createNode);
+  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
+  const setEditingNode = useCanvasStore((state) => state.setEditingNode);
+
+  // Link mode state for cancellation on canvas click
+  const { cancelConnectMode } = useLinkMode();
+
+  // Track mouse position for temporary connection line (T068)
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   // SVG ref for gesture binding
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Click timer ref for double-click detection
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Gesture intent detection state
   const gestureStateRef = useRef({
@@ -110,10 +128,92 @@ export const Canvas: React.FC = () => {
     onDrag: handleDrag,
   });
 
+  // Double-click handler: create new node with auto-connect
+  const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Only handle if clicking empty canvas (not a node or child element)
+    if (e.target !== e.currentTarget) {
+      return;
+    }
+
+    // IMPORTANT: Cancel single-click timer to prevent deselection
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+
+    // Priority 1: Exit editing mode if active
+    if (editingNodeId) {
+      setEditingNode(null);
+      // Continue to create new node after exiting editing mode
+    }
+
+    // Get click position in screen coordinates
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+
+    // Transform to canvas coordinates (account for pan and zoom)
+    const canvasX = (screenX - pan.x) / zoom;
+    const canvasY = (screenY - pan.y) / zoom;
+
+    // Create node at click position, auto-connect to selected node
+    // selectedNodeId is preserved because timer was cancelled
+    createNode({ x: canvasX, y: canvasY }, selectedNodeId);
+  };
+
+  // Mouse move handler: track cursor position for temporary connection line (T068)
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!connectingFrom) {
+      setMousePos(null);
+      return;
+    }
+
+    // Get mouse position in screen coordinates
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+
+    // Transform to canvas coordinates (account for pan and zoom)
+    const canvasX = (screenX - pan.x) / zoom;
+    const canvasY = (screenY - pan.y) / zoom;
+
+    setMousePos({ x: canvasX, y: canvasY });
+  };
+
+  // Handle external click to deselect nodes
+  // Uses timer to distinguish between single click and double-click
+  const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    // Only handle if clicking empty canvas (not a node or child element)
+    if (e.target === e.currentTarget) {
+      // Clear existing timer
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+
+      // Set timer for 300ms - will be cancelled if double-click occurs
+      clickTimerRef.current = setTimeout(() => {
+        // Priority 1: Exit editing mode if active
+        if (editingNodeId) {
+          setEditingNode(null);
+        }
+        // Priority 2: Deselect node (only if NOT double-clicking)
+        setSelectedNode(null);
+
+        // Priority 3: Cancel connect mode if active
+        cancelConnectMode();
+
+        clickTimerRef.current = null;
+      }, 300);
+    }
+  };
+
   return (
     <svg
       ref={svgRef}
       {...bind()}
+      onClick={handleCanvasClick}
+      onDoubleClick={handleDoubleClick}
+      onMouseMove={handleMouseMove}
       width="100%"
       height="100%"
       viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}
@@ -136,6 +236,39 @@ export const Canvas: React.FC = () => {
         {edges.map((edge) => (
           <EdgeComponent key={edge.id} edge={edge} />
         ))}
+
+        {/* T068: Temporary connection line when in connecting mode */}
+        {connectingFrom && mousePos && (() => {
+          const sourceNode = nodes.find((n) => n.id === connectingFrom);
+          if (!sourceNode) return null;
+
+          // Calculate center of source node for connection line
+          const sourceCenter = getNodeCenter(sourceNode, tokenDefinitions);
+
+          return (
+            <line
+              x1={sourceCenter.x}
+              y1={sourceCenter.y}
+              x2={mousePos.x}
+              y2={mousePos.y}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+              opacity={0.6}
+              style={{
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="0"
+                to="10"
+                dur="0.5s"
+                repeatCount="indefinite"
+              />
+            </line>
+          );
+        })()}
 
         {/* Render all nodes from store - rendered last so they appear on top */}
         {/* Each node is a 120px circle with text content, draggable, and editable */}
