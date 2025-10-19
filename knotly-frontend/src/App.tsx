@@ -1,51 +1,77 @@
+import { useEffect } from 'react';
 import { Canvas } from './components/Canvas';
 import { FABButton } from './components/FABButton';
 import { Settings } from './components/Settings';
 import { LinkModeProvider } from './components/LinkModeButton';
+import { StartScreen } from './components/StartScreen';
+import { TitleBar } from './components/TitleBar';
+import { useCanvasStore } from './store/canvasStore';
 
 /**
  * App - Main application component
  *
+ * Screen Routing:
+ * - Shows StartScreen when no note is loaded (nodes.length === 0 && !currentFilePath)
+ * - Shows Canvas + TitleBar when a note is active
+ *
  * Renders:
+ * - StartScreen: Landing page for new note / open file actions
+ * - TitleBar: Filename display with save status (●/✓ indicators)
  * - LinkModeProvider: Context provider for link mode state (wraps all interactive components)
  * - Full-screen Canvas for the graph editor
  * - Settings toolbar (top-left) for grid and snap toggles
  * - FABButton overlay (bottom-right) for creating new nodes
  * - LinkModeButton overlay (bottom-left) for entering link mode (rendered by LinkModeProvider)
  *
- * Layout:
- * - Container fills entire viewport
- * - Canvas takes full width/height
- * - Settings positioned fixed at top-left
- * - FABButton positioned fixed at bottom-right
- * - LinkModeButton positioned fixed at bottom-left
- *
  * State Management:
  * - All state managed via Zustand store (useCanvasStore)
  * - Link mode state managed via React Context (LinkModeContext)
- * - All components interact through store actions/state and context
- *
- * Component Hierarchy:
- * - LinkModeProvider provides context to Canvas and NodeComponent
- * - LinkModeProvider renders LinkModeButton UI
- * - Canvas and Settings render as overlays
- * - FABButton renders as fixed overlay
+ * - beforeunload listener warns user of unsaved changes
  */
 
 function App() {
+  const { nodes, currentFilePath, hasUnsavedChanges } = useCanvasStore();
+
+  // Show confirmation dialog if user tries to leave with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        // Chrome requires returnValue to be set
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Screen routing: StartScreen vs Canvas
+  const showStartScreen = nodes.length === 0 && !currentFilePath;
+
+  if (showStartScreen) {
+    return <StartScreen />;
+  }
+
   return (
     <LinkModeProvider>
-      <div className="relative w-screen h-screen overflow-hidden bg-white">
-        {/* Full-screen canvas - allows creating/editing/moving nodes and viewing edges */}
-        <Canvas />
+      <div className="relative w-screen h-screen overflow-hidden bg-white flex flex-col">
+        {/* TitleBar at top with filename and save status */}
+        <TitleBar />
 
-        {/* Settings toolbar for grid and snap controls (top-left) */}
-        <Settings />
+        {/* Main canvas area */}
+        <div className="flex-1 relative overflow-hidden">
+          {/* Full-screen canvas - allows creating/editing/moving nodes and viewing edges */}
+          <Canvas />
 
-        {/* Floating action button for creating nodes (bottom-right) */}
-        <FABButton />
+          {/* Settings toolbar for grid and snap controls (top-left) */}
+          <Settings />
 
-        {/* LinkModeButton is rendered by LinkModeProvider internally (bottom-left) */}
+          {/* Floating action button for creating nodes (bottom-right) */}
+          <FABButton />
+
+          {/* LinkModeButton is rendered by LinkModeProvider internally (bottom-left) */}
+        </div>
       </div>
     </LinkModeProvider>
   );
