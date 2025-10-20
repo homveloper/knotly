@@ -29,6 +29,7 @@ export function MarkdownEditor() {
 
   // Refs for dirty flag pattern and cursor preservation
   const isUpdatingFromCanvas = useRef(false);
+  const isEditorInitiated = useRef(false); // Track if change originated from editor
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<CursorPosition>({ start: 0, end: 0 });
 
@@ -59,6 +60,13 @@ export function MarkdownEditor() {
 
     // Mark this as editor-initiated update (not from canvas)
     isUpdatingFromCanvas.current = false;
+    isEditorInitiated.current = true;
+
+    // Clear the editor-initiated flag after parsing completes
+    // (350ms is slightly longer than the 300ms parsing debounce)
+    setTimeout(() => {
+      isEditorInitiated.current = false;
+    }, 350);
 
     // Update store markdown (will trigger debounced parsing)
     useCanvasStore.setState({ markdown: newValue });
@@ -110,6 +118,12 @@ export function MarkdownEditor() {
       // Only trigger if nodes actually changed
       if (state.nodes !== previousNodes) {
         previousNodes = state.nodes;
+
+        // Skip serialization if this change originated from the editor
+        // This prevents the circular update: editor → parse → nodes → serialize → editor
+        if (isEditorInitiated.current) {
+          return;
+        }
 
         // Serialize canvas nodes back to markdown
         const currentEdges = useCanvasStore.getState().edges as unknown as Edge[];
