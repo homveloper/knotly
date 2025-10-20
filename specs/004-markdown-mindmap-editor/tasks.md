@@ -31,7 +31,7 @@ This document provides a dependency-ordered task list for implementing the Markd
 - [X] T006 Create knotly-frontend/tests/integration/ directory for integration tests
 - [X] T007 Verify TypeScript compilation with pnpm exec tsc --noEmit
 - [X] T008 Verify ESLint passes with pnpm lint (pre-existing errors noted, no new errors from this phase)
-- [ ] T009 Commit setup changes with message "feat(004): install dependencies and create repository structure"
+- [X] T009 Commit setup changes with message "feat(004): install dependencies and create repository structure"
 
 ---
 
@@ -45,34 +45,34 @@ This document provides a dependency-ordered task list for implementing the Markd
 
 ### Type Definitions & Factories
 
-- [ ] T010 [P] Extend knotly-frontend/src/types/canvas.ts with BaseNode interface (id, content, style, position, measuredSize, groupId)
-- [ ] T011 [P] Add TextNode interface to knotly-frontend/src/types/canvas.ts (type: 'text', level: 1-5)
-- [ ] T012 [P] Add HeaderNode interface to knotly-frontend/src/types/canvas.ts (type: 'header', level: 1-6)
-- [ ] T013 [P] Add CodeNode interface to knotly-frontend/src/types/canvas.ts (type: 'code', language, expanded)
-- [ ] T014 [P] Add ImageNode interface to knotly-frontend/src/types/canvas.ts (type: 'image', imageUrl, altText)
-- [ ] T015 [P] Create discriminated union type Node = TextNode | HeaderNode | CodeNode | ImageNode in knotly-frontend/src/types/canvas.ts
-- [ ] T016 [P] Add LayoutType = 'radial' | 'horizontal' to knotly-frontend/src/types/canvas.ts
-- [ ] T017 [P] Add Result<T, E> type to knotly-frontend/src/types/canvas.ts (ok: boolean, value/error)
+- [X] T010 [P] Extend knotly-frontend/src/types/canvas.ts with BaseNode interface (CREATED: src/types/markdown.ts)
+- [X] T011 [P] Add TextNode interface to knotly-frontend/src/types/markdown.ts (type: 'text', level: 1-5)
+- [X] T012 [P] Add HeaderNode interface to knotly-frontend/src/types/markdown.ts (type: 'header', level: 1-6)
+- [X] T013 [P] Add CodeNode interface to knotly-frontend/src/types/markdown.ts (type: 'code', language, expanded)
+- [X] T014 [P] Add ImageNode interface to knotly-frontend/src/types/markdown.ts (type: 'image', imageUrl, altText)
+- [X] T015 [P] Create discriminated union type MarkdownNode in knotly-frontend/src/types/markdown.ts
+- [X] T016 [P] Add LayoutType = 'radial' | 'horizontal' to knotly-frontend/src/types/markdown.ts
+- [X] T017 [P] Add Result<T, E> type to knotly-frontend/src/types/markdown.ts (ok: boolean, value/error)
 
 ### Repository Layer - Helpers
 
-- [ ] T018 [P] Implement extractStyleTokens(text: string) in knotly-frontend/src/repository/helpers.ts with regex /\s*\{(\.[\w-]+(?:\s+\.[\w-]+)*)\}\s*$/
-- [ ] T019 [P] Implement restoreStyleTokens(content: string, tokens: string[]) in knotly-frontend/src/repository/helpers.ts
-- [ ] T020 [P] Implement computeLevels(nodes: Node[], edges: Edge[]) using BFS in knotly-frontend/src/repository/helpers.ts
-- [ ] T021 [P] Implement findRootNodes(nodes: Node[], edges: Edge[]) in knotly-frontend/src/repository/helpers.ts
-- [ ] T022 [P] Implement findChildren(nodeId: string, edges: Edge[]) in knotly-frontend/src/repository/helpers.ts
+- [X] T018 [P] Implement extractStyleTokens(text: string) in knotly-frontend/src/repository/helpers.ts
+- [X] T019 [P] Implement restoreStyleTokens(content: string, tokens: string[]) in knotly-frontend/src/repository/helpers.ts
+- [X] T020 [P] Implement computeLevels(nodes: Node[], edges: Edge[]) using BFS in knotly-frontend/src/repository/helpers.ts
+- [X] T021 [P] Implement findRootNodes(nodes: Node[], edges: Edge[]) in knotly-frontend/src/repository/helpers.ts
+- [X] T022 [P] Implement findChildren(nodeId: string, edges: Edge[]) in knotly-frontend/src/repository/helpers.ts
 
 ### Factory Functions
 
-- [ ] T023 [P] Implement createTextNode factory in knotly-frontend/src/repository/factories.ts returning Result<TextNode, ValidationError>
-- [ ] T024 [P] Implement createHeaderNode factory in knotly-frontend/src/repository/factories.ts with level validation (1-6)
-- [ ] T025 [P] Implement createCodeNode factory in knotly-frontend/src/repository/factories.ts with language validation
-- [ ] T026 [P] Implement createImageNode factory in knotly-frontend/src/repository/factories.ts with URL validation
-- [ ] T027 [P] Implement createEdge factory in knotly-frontend/src/repository/factories.ts with sourceId/targetId validation
+- [X] T023 [P] Implement createTextNode factory in knotly-frontend/src/repository/factories.ts
+- [X] T024 [P] Implement createHeaderNode factory in knotly-frontend/src/repository/factories.ts with level validation
+- [X] T025 [P] Implement createCodeNode factory in knotly-frontend/src/repository/factories.ts with language validation
+- [X] T026 [P] Implement createImageNode factory in knotly-frontend/src/repository/factories.ts with URL validation
+- [X] T027 [P] Implement createEdge factory in knotly-frontend/src/repository/factories.ts with sourceId/targetId validation
 
 ### Store Extension
 
-- [ ] T028 Extend knotly-frontend/src/store/canvasStore.ts with layout: LayoutType field (default: 'radial')
+- [X] T028 Extend knotly-frontend/src/store/canvasStore.ts with layout and markdown fields
 
 ---
 

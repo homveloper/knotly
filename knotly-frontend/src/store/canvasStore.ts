@@ -40,6 +40,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   hasUnsavedChanges: false,
   recentFiles: JSON.parse(localStorage.getItem('knotly-recent-files') || '[]'),
 
+  // Markdown Editor State (Feature 004)
+  layout: 'radial' as 'radial' | 'horizontal', // Default to radial layout
+  markdown: '', // Current markdown text
+
   // ============================================
   // Node Actions
   // ============================================
