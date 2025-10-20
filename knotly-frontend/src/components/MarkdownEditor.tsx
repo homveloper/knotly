@@ -46,27 +46,21 @@ export function MarkdownEditor() {
 
   /**
    * Handle user typing in textarea
-   * Saves cursor position and marks update as editor-initiated
+   * Editor has complete freedom - no cursor preservation during typing
    */
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     const { selectionStart, selectionEnd } = e.target;
 
-    // Store cursor position for preservation
+    // Store cursor position (only for Canvas-initiated updates)
     cursorPositionRef.current = { start: selectionStart, end: selectionEnd };
 
     // Update local state immediately for responsive UI
     setLocalValue(newValue);
 
-    // Mark this as editor-initiated update (not from canvas)
+    // Mark this as editor-initiated update
     isUpdatingFromCanvas.current = false;
     isEditorInitiated.current = true;
-
-    // Clear the editor-initiated flag after parsing completes
-    // (350ms is slightly longer than the 300ms parsing debounce)
-    setTimeout(() => {
-      isEditorInitiated.current = false;
-    }, 350);
 
     // Update store markdown (will trigger debounced parsing)
     useCanvasStore.setState({ markdown: newValue });
@@ -109,7 +103,7 @@ export function MarkdownEditor() {
 
   /**
    * Subscribe to canvas node changes and serialize to markdown
-   * Uses dirty flag to mark update as canvas-initiated
+   * Only runs for Canvas-initiated changes (not editor typing)
    */
   useLayoutEffect(() => {
     let previousNodes = useCanvasStore.getState().nodes;
@@ -120,12 +114,13 @@ export function MarkdownEditor() {
         previousNodes = state.nodes;
 
         // Skip serialization if this change originated from the editor
-        // This prevents the circular update: editor → parse → nodes → serialize → editor
+        // Clear the flag immediately to prevent stale state
         if (isEditorInitiated.current) {
+          isEditorInitiated.current = false; // Immediately clear
           return;
         }
 
-        // Serialize canvas nodes back to markdown
+        // Serialize canvas nodes back to markdown (Canvas-initiated changes only)
         const currentEdges = useCanvasStore.getState().edges as unknown as Edge[];
         const currentLayout = useCanvasStore.getState().layout as LayoutType;
 
@@ -136,7 +131,7 @@ export function MarkdownEditor() {
         );
 
         if (result.ok) {
-          // Mark this as canvas-initiated update
+          // Mark this as canvas-initiated update for cursor restoration
           isUpdatingFromCanvas.current = true;
 
           // Update markdown in store
@@ -151,7 +146,8 @@ export function MarkdownEditor() {
   }, []);
 
   /**
-   * Restore cursor position after external (canvas-initiated) updates
+   * Restore cursor position ONLY for Canvas-initiated updates
+   * Only triggers when markdown changes from Canvas, not from editor typing
    * Uses useLayoutEffect to prevent visible flicker
    */
   useLayoutEffect(() => {
@@ -164,8 +160,11 @@ export function MarkdownEditor() {
       const safeEnd = Math.min(end, maxLength);
 
       textareaRef.current.setSelectionRange(safeStart, safeEnd);
+
+      // Clear flag after restoration
+      isUpdatingFromCanvas.current = false;
     }
-  }, [localValue]);
+  }, [markdown]); // React to markdown changes, NOT localValue changes!
 
   return (
     <div className="markdown-editor h-full flex flex-col">
