@@ -98,37 +98,37 @@ This document provides a dependency-ordered task list for implementing the Markd
 
 #### Unit Tests for Parser
 
-- [ ] T029 [P] [US1] Write unit test for parseMarkdown parsing single header in knotly-frontend/tests/unit/markdownParser.test.ts
-- [ ] T030 [P] [US1] Write unit test for parseMarkdown parsing nested headers (# → ## → ###) in knotly-frontend/tests/unit/markdownParser.test.ts
-- [ ] T031 [P] [US1] Write unit test for parseMarkdown parsing simple list in knotly-frontend/tests/unit/markdownParser.test.ts
-- [ ] T032 [P] [US1] Write unit test for parseMarkdown parsing nested lists (3 levels) in knotly-frontend/tests/unit/markdownParser.test.ts
-- [ ] T033 [P] [US1] Write unit test for parseMarkdown handling layout comment `<!-- knotly-layout: radial -->` in knotly-frontend/tests/unit/markdownParser.test.ts
+- [X] T029 [P] [US1] Write unit test for parseMarkdown parsing single header (14 tests total)
+- [X] T030 [P] [US1] Write unit test for parseMarkdown parsing nested headers
+- [X] T031 [P] [US1] Write unit test for parseMarkdown parsing simple list
+- [X] T032 [P] [US1] Write unit test for parseMarkdown parsing nested lists (3 levels)
+- [X] T033 [P] [US1] Write unit test for parseMarkdown handling layout comment
 
 #### Parser Implementation
 
-- [ ] T034 [US1] Implement parseMarkdown(text: string) in knotly-frontend/src/repository/markdownParser.ts using marked.lexer()
-- [ ] T035 [US1] Add layout comment extraction logic to parseMarkdown in knotly-frontend/src/repository/markdownParser.ts
-- [ ] T036 [US1] Add heading token processing to parseMarkdown using nodeStack for hierarchy in knotly-frontend/src/repository/markdownParser.ts
-- [ ] T037 [US1] Add list token processing to parseMarkdown with indentation-based edges in knotly-frontend/src/repository/markdownParser.ts
-- [ ] T038 [US1] Add horizontal rule (---) processing for groupId in parseMarkdown in knotly-frontend/src/repository/markdownParser.ts
+- [X] T034 [US1] Implement parseMarkdown(text: string) using marked.lexer()
+- [X] T035 [US1] Add layout comment extraction logic to parseMarkdown
+- [X] T036 [US1] Add heading token processing with nodeStack for hierarchy
+- [X] T037 [US1] Add list token processing with indentation-based edges
+- [X] T038 [US1] Add horizontal rule (---) processing for groupId
 
 #### Unit Tests for Serializer
 
-- [ ] T039 [P] [US1] Write unit test for serializeToMarkdown with single header in knotly-frontend/tests/unit/markdownSerializer.test.ts
-- [ ] T040 [P] [US1] Write unit test for serializeToMarkdown with nested headers in knotly-frontend/tests/unit/markdownSerializer.test.ts
-- [ ] T041 [P] [US1] Write unit test for serializeToMarkdown with nested lists in knotly-frontend/tests/unit/markdownSerializer.test.ts
+- [X] T039 [P] [US1] Write unit test for serializeToMarkdown with single header (9 tests total)
+- [X] T040 [P] [US1] Write unit test for serializeToMarkdown with nested headers
+- [X] T041 [P] [US1] Write unit test for serializeToMarkdown with nested lists
 
 #### Serializer Implementation
 
-- [ ] T042 [US1] Implement serializeToMarkdown(nodes, edges, layout) in knotly-frontend/src/repository/markdownSerializer.ts
-- [ ] T043 [US1] Add layout comment generation to serializeToMarkdown in knotly-frontend/src/repository/markdownSerializer.ts
-- [ ] T044 [US1] Add header serialization logic to serializeToMarkdown in knotly-frontend/src/repository/markdownSerializer.ts
-- [ ] T045 [US1] Add list serialization with indentation to serializeToMarkdown in knotly-frontend/src/repository/markdownSerializer.ts
+- [X] T042 [US1] Implement serializeToMarkdown(nodes, edges, layout)
+- [X] T043 [US1] Add layout comment generation to serializeToMarkdown
+- [X] T044 [US1] Add header serialization logic to serializeToMarkdown
+- [X] T045 [US1] Add list serialization with indentation to serializeToMarkdown
 
 #### Integration
 
-- [ ] T046 [US1] Create MarkdownEditor component in knotly-frontend/src/components/MarkdownEditor.tsx with textarea and useRef for dirty flag
-- [ ] T047 [US1] Add 300ms debounce for editor → canvas updates in MarkdownEditor using useLayoutEffect in knotly-frontend/src/components/MarkdownEditor.tsx
+- [X] T046 [US1] Create MarkdownEditor component with textarea and useRef for dirty flag
+- [X] T047 [US1] Add 300ms debounce for editor → canvas updates using useLayoutEffect
 
 ---
 
