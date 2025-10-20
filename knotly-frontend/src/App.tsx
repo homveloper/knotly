@@ -5,6 +5,9 @@ import { Settings } from './components/Settings';
 import { LinkModeProvider } from './components/LinkModeButton';
 import { StartScreen } from './components/StartScreen';
 import { TitleBar } from './components/TitleBar';
+import { SplitLayout } from './components/SplitLayout';
+import { MarkdownEditor } from './components/MarkdownEditor';
+import { LayoutSelector } from './components/LayoutSelector';
 import { useCanvasStore } from './store/canvasStore';
 
 /**
@@ -59,18 +62,33 @@ function App() {
         {/* TitleBar at top with filename and save status */}
         <TitleBar />
 
-        {/* Main canvas area */}
+        {/* Main content area with split layout (Feature 004 - Phase 6) */}
         <div className="flex-1 relative overflow-hidden">
-          {/* Full-screen canvas - allows creating/editing/moving nodes and viewing edges */}
-          <Canvas />
+          <SplitLayout
+            left={
+              /* Markdown Editor pane */
+              <MarkdownEditor />
+            }
+            right={
+              /* Canvas pane with interactive graph editor */
+              <div className="relative w-full h-full">
+                <Canvas />
 
-          {/* Settings toolbar for grid and snap controls (top-left) */}
-          <Settings />
+                {/* Settings toolbar for grid and snap controls (top-left) */}
+                <Settings />
 
-          {/* Floating action button for creating nodes (bottom-right) */}
-          <FABButton />
+                {/* T101: Layout selector for switching between radial and horizontal (top-right) */}
+                <div className="fixed top-4 right-4 z-10">
+                  <LayoutSelector />
+                </div>
 
-          {/* LinkModeButton is rendered by LinkModeProvider internally (bottom-left) */}
+                {/* Floating action button for creating nodes (bottom-right) */}
+                <FABButton />
+
+                {/* LinkModeButton is rendered by LinkModeProvider internally (bottom-left) */}
+              </div>
+            }
+          />
         </div>
       </div>
     </LinkModeProvider>

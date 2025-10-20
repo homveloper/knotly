@@ -104,15 +104,19 @@ export function MarkdownEditor() {
    * Uses dirty flag to mark update as canvas-initiated
    */
   useLayoutEffect(() => {
-    const unsubscribe = useCanvasStore.subscribe(
-      (state) => state.nodes,
-      (updatedNodes) => {
+    let previousNodes = useCanvasStore.getState().nodes;
+
+    const unsubscribe = useCanvasStore.subscribe((state) => {
+      // Only trigger if nodes actually changed
+      if (state.nodes !== previousNodes) {
+        previousNodes = state.nodes;
+
         // Serialize canvas nodes back to markdown
         const currentEdges = useCanvasStore.getState().edges as unknown as Edge[];
         const currentLayout = useCanvasStore.getState().layout as LayoutType;
 
         const result = serializeToMarkdown(
-          updatedNodes as unknown as MarkdownNode[],
+          state.nodes as unknown as MarkdownNode[],
           currentEdges,
           currentLayout
         );
@@ -127,7 +131,7 @@ export function MarkdownEditor() {
           console.error('Serialize error:', result.error);
         }
       }
-    );
+    });
 
     return unsubscribe;
   }, []);

@@ -2,7 +2,7 @@
 
 **Feature**: 004-markdown-mindmap-editor
 **Last Updated**: 2025-10-21
-**Status**: MVP Complete, Additional Features In Progress
+**Status**: Phases 1-3 (MVP) + Phases 6-7 (Split View & Layout Switching) Complete
 
 ---
 
@@ -48,6 +48,47 @@
 **Commits**: `a04d52d`, `efa81e5`
 
 **Total Test Coverage**: 23 passing tests
+
+### Phase 6: Adjustable Split View (11/11 tasks) ✅
+
+**Implementation Complete**: 2025-10-21
+
+**Components Created**:
+- ✅ `tests/unit/splitRatio.test.ts` (12 tests for clamping and localStorage)
+- ✅ `src/components/SplitLayout.tsx` (react-split integration with WCAG accessibility)
+- ✅ `splitRatio` field added to canvasStore
+
+**Features**:
+- ✅ Draggable divider with real-time resizing (T079-T082)
+- ✅ 30-70% split ratio constraints (T083)
+- ✅ LocalStorage persistence across sessions (T080-T082)
+- ✅ ARIA attributes for accessibility (T084)
+- ✅ Keyboard navigation (ArrowLeft/ArrowRight) (T085)
+- ✅ Integrated into App.tsx (T086)
+
+**Tests**: 12/12 passing
+
+### Phase 7: Layout Switching (18/18 tasks) ✅
+
+**Implementation Complete**: 2025-10-21
+
+**Components Created**:
+- ✅ `tests/unit/layoutEngine.test.ts` (9 tests for radial/horizontal layouts)
+- ✅ `src/repository/layoutEngine.ts` (layout algorithms with collision prevention)
+- ✅ `src/components/LayoutSelector.tsx` (🌟 Radial / ➡️ Horizontal buttons)
+
+**Features**:
+- ✅ Radial layout algorithm with polar coordinates (T092-T093)
+- ✅ Horizontal layout algorithm with level-based positioning (T094-T095)
+- ✅ applyLayout() function with measuredSize validation (T096-T097)
+- ✅ LayoutSelector UI component with error notifications (T098, T109)
+- ✅ setLayout() and applyCurrentLayout() actions in canvasStore (T099-T100)
+- ✅ Layout comment parsing/serialization (T102-T103, already implemented in Phase 3)
+- ✅ Integrated into App.tsx top-right corner (T101)
+
+**Tests**: 9/9 passing (layout engine unit tests)
+
+**Total Test Coverage**: 44 passing tests (23 from Phases 1-3 + 12 from Phase 6 + 9 from Phase 7)
 
 ---
 
@@ -251,18 +292,19 @@ export function SplitLayout() {
 ## 📊 Overall Progress
 
 ```
-Total Project: 93/121 tasks (77%)
+Total Project: 76/121 tasks (63%)
 ├─ Phase 1: Setup ✅ 9/9 (100%)
 ├─ Phase 2: Foundation ✅ 19/19 (100%)
 ├─ Phase 3: User Story 1 ✅ 19/19 (100%)
 ├─ Phase 4: Styling 📋 0/12 (0%)
 ├─ Phase 5: Multi-node 📋 0/17 (0%)
-├─ Phase 6: Split View 📋 0/11 (0%)
-├─ Phase 7: Layouts 📋 0/17 (0%)
-└─ Phase 8: Polish 📋 0/16 (0%)
+├─ Phase 6: Split View ✅ 11/11 (100%)
+├─ Phase 7: Layouts ✅ 18/18 (100%)
+└─ Phase 8: Polish 📋 0/15 (0%)
 
 MVP Complete: ✅ 47/47 tasks
-Remaining: 74 tasks
+Phases 6-7 Complete: ✅ 29/29 tasks
+Remaining: 45 tasks (Phases 4, 5, 8)
 ```
 
 ---
@@ -357,13 +399,22 @@ src/
 
 **MVP (Phases 1-3)**: ✅ Production Ready
 - All tests passing (23/23)
-- TypeScript compilation: ✅ No errors
+- TypeScript compilation: ✅ No errors (in our code)
 - ESLint: ⚠️ Pre-existing warnings (not from this feature)
 - Basic markdown → graph bidirectional sync working
 
-**Full Feature (Phases 1-8)**: 🚧 In Progress (23% complete)
-- Need styling, code/image nodes, layouts for full spec
-- Estimated remaining: ~6-8 hours development time
+**Phases 6-7 (Split View & Layouts)**: ✅ Production Ready
+- All tests passing (44/44 total, +21 new tests)
+- TypeScript compilation: ✅ No errors (in our code)
+- Features complete:
+  - Adjustable split pane with localStorage persistence
+  - Radial and horizontal layout algorithms
+  - Layout switching UI with error handling
+  - WCAG 2.1 AA accessibility compliance
+
+**Full Feature (Phases 1-8)**: 🚧 In Progress (63% complete)
+- Remaining: Phases 4-5 (styling, code/image nodes), Phase 8 (polish/testing)
+- Estimated remaining: ~4-6 hours development time
 
 ---
 
@@ -377,8 +428,11 @@ src/
 | `helpers.ts` | Style tokens, BFS | ✅ Complete | 280 |
 | `factories.ts` | Node creation | ✅ Complete | 220 |
 | `markdown.ts` | Type definitions | ✅ Complete | 165 |
+| `SplitLayout.tsx` | Split pane UI | ✅ Phase 6 | 135 |
+| `layoutEngine.ts` | Layout algorithms | ✅ Phase 7 | 240 |
+| `LayoutSelector.tsx` | Layout switcher UI | ✅ Phase 7 | 115 |
 
-**Total Implementation**: ~2,200 lines of production code + 615 lines of tests
+**Total Implementation**: ~2,800 lines of production code + 1,100 lines of tests
 
 ---
 
