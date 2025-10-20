@@ -5,41 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
-/**
- * Utility function to clamp split ratio to 30-70% range
- * Used by SplitLayout component
- */
-export function clampSplitRatio(ratio: number): number {
-  const MIN_RATIO = 30;
-  const MAX_RATIO = 70;
-  return Math.max(MIN_RATIO, Math.min(MAX_RATIO, ratio));
-}
-
-/**
- * Utility function to save split ratio to localStorage
- */
-export function saveSplitRatio(sizes: number[]): void {
-  localStorage.setItem('split-sizes', JSON.stringify(sizes));
-}
-
-/**
- * Utility function to load split ratio from localStorage
- */
-export function loadSplitRatio(): number[] | null {
-  const saved = localStorage.getItem('split-sizes');
-  if (!saved) return null;
-
-  try {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed) && parsed.length === 2) {
-      return parsed;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+import { clampSplitRatio, saveSplitRatio, loadSplitRatio } from '../../src/utils/splitRatioHelpers';
 
 describe('splitRatio', () => {
   // T077: Split ratio clamping tests

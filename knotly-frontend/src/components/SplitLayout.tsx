@@ -13,7 +13,7 @@
 
 import { useState, useEffect, type ReactNode, type KeyboardEvent } from 'react';
 import Split from 'react-split';
-import { clampSplitRatio, loadSplitRatio, saveSplitRatio } from '../../tests/unit/splitRatio.test';
+import { clampSplitRatio, loadSplitRatio, saveSplitRatio } from '../utils/splitRatioHelpers';
 
 interface SplitLayoutProps {
   left: ReactNode;
