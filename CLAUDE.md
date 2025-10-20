@@ -22,9 +22,9 @@ npm test && npm run lint
 TypeScript 5.x (with strict mode enabled) + JavaScript ES2020+: Follow standard conventions
 
 ## Recent Changes
+- 004-markdown-mindmap-editor: Added TypeScript 5.x with strict mode enabled
 - 003-markdown-file-tokens: Added TypeScript 5.x with strict mode enabled + React 18, Zustand 4.x, @use-gesture/react, Tailwind CSS 4.x, rough.js ^4.6.6, js-yaml ^4.1.0
 - 002-node-crud-gestures: Added TypeScript 5.x with strict mode enabled, React 18 + Zustand (state management), @use-gesture/react (touch gestures), rough.js ^4.6.6 (hand-drawn rendering), uuid (unique IDs), Tailwind CSS 3.x (styling)
-- 001-handdrawn-canvas-prototype: Added TypeScript 5.x (with strict mode enabled) + JavaScript ES2020+ + React 18, Vite 5.x, rough.js ^4.6.6, Tailwind CSS 3.x
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

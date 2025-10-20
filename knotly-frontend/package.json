@@ -12,8 +12,10 @@
   "dependencies": {
     "@use-gesture/react": "^10.3.1",
     "js-yaml": "^4.1.0",
+    "marked": "^15.0.12",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-split": "^2.0.14",
     "roughjs": "^4.6.6",
     "uuid": "^13.0.0",
     "zustand": "^5.0.8"
