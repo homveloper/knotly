@@ -13,6 +13,8 @@ import { useRef, useLayoutEffect, useState } from 'react';
 import { useCanvasStore } from '../store/canvasStore';
 import { parseMarkdown } from '../repository/markdownParser';
 import { serializeToMarkdown } from '../repository/markdownSerializer';
+import { calculateNodesBoundingCenter } from '../repository/helpers';
+import { applyLayout } from '../repository/layoutEngine';
 import type { MarkdownNode, Edge, LayoutType } from '../types/markdown';
 
 interface CursorPosition {
@@ -83,14 +85,60 @@ export function MarkdownEditor() {
       if (result.ok) {
         const { nodes: parsedNodes, edges: parsedEdges, layout: parsedLayout } = result.value;
 
-        // Update store with parsed data
-        // Note: This is a simplified version. In a full implementation,
-        // you'd need to handle the type mismatch between MarkdownNode and the existing Node type
+        // Add default measuredSize to nodes that don't have it yet
+        // (Real measurement happens in NodeComponent after rendering)
+        const nodesWithSize = parsedNodes.map((node) => ({
+          ...node,
+          measuredSize: node.measuredSize || { width: 120, height: 60 },
+        }));
+
+        // Apply layout to calculate node positions
+        const layoutResult = applyLayout(nodesWithSize, parsedEdges, parsedLayout);
+
+        if (!layoutResult.ok) {
+          // Layout calculation failed
+          console.error('Layout error:', JSON.stringify(layoutResult.error, null, 2));
+          return;
+        }
+
+        const positionedNodes = layoutResult.value;
+
+        // Calculate node center for auto-centering viewport
+        const nodeCenter = calculateNodesBoundingCenter(positionedNodes);
+
+        // Get Canvas viewport size (right pane of split layout)
+        const canvasElement = document.querySelector('.split-pane-right');
+        const viewportWidth = canvasElement?.clientWidth || 800;
+        const viewportHeight = canvasElement?.clientHeight || 600;
+
+        // Get current zoom from store
+        const currentZoom = useCanvasStore.getState().zoom;
+
+        // Calculate pan to center nodes in viewport
+        // Formula: pan = (viewport_center / zoom) - node_center
+        // This ensures node_center appears at viewport_center after transform
+        const newPan = {
+          x: viewportWidth / (2 * currentZoom) - nodeCenter.x,
+          y: viewportHeight / (2 * currentZoom) - nodeCenter.y,
+        };
+
+        // Convert markdown Edge type to canvas Edge type
+        // markdown.Edge: { id, sourceId, targetId }
+        // canvas.Edge: { id, fromId, toId, lineStyle, createdAt }
+        const canvasEdges = parsedEdges.map(edge => ({
+          id: edge.id,
+          fromId: edge.sourceId,  // sourceId → fromId
+          toId: edge.targetId,    // targetId → toId
+          lineStyle: 'solid' as const,
+          createdAt: Date.now(),
+        }));
+
+        // Update store with positioned nodes and auto-centered pan
         useCanvasStore.setState({
-          // Store parsed nodes (type conversion needed for full integration)
-          nodes: parsedNodes as unknown as any[],
-          edges: parsedEdges as unknown as any[],
+          nodes: positionedNodes as unknown as any[],
+          edges: canvasEdges as unknown as any[], // Use converted edges
           layout: parsedLayout,
+          pan: newPan, // Auto-center nodes in canvas viewport
         });
       } else {
         // Handle parse error (log for now, could show notification)
