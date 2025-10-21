@@ -24,8 +24,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   // ============================================
   nodes: [],
   edges: [],
-  zoom: 1, // Default 100% zoom
-  pan: { x: 0, y: 0 }, // Default no pan
+  zoom: 1.5, // Default 150% zoom (nodes appear larger)
+  pan: { x: 0, y: 0 }, // Default no pan (auto-centered after markdown parsing)
   gridEnabled: false, // Grid hidden by default
   snapEnabled: false, // Snap disabled by default
   selectedEdgeId: null, // No edge selected initially
@@ -39,6 +39,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   currentFileHandle: null,
   hasUnsavedChanges: false,
   recentFiles: JSON.parse(localStorage.getItem('knotly-recent-files') || '[]'),
+
+  // Markdown Editor State (Feature 004)
+  layout: 'radial' as 'radial' | 'horizontal', // Default to radial layout
+  markdown: '', // Current markdown text
+
+  // Split Layout State (Feature 004 - Phase 6)
+  splitRatio: [50, 50] as number[], // Default 50-50 split between editor and canvas
 
   // ============================================
   // Node Actions
@@ -331,6 +338,66 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set({
       connectingFrom: id,
     }),
+
+  /**
+   * Set split ratio for editor/canvas panes (Feature 004 - Phase 6)
+   * Updates the split ratio array [leftPercent, rightPercent]
+   * Note: SplitLayout component handles localStorage persistence directly
+   */
+  setSplitRatio: (ratio: number[]) =>
+    set({
+      splitRatio: ratio,
+    }),
+
+  /**
+   * T099: Set layout and recalculate node positions (Feature 004 - Phase 7)
+   * Applies layout algorithm to all nodes and updates positions
+   * Note: Requires nodes to have measuredSize property set
+   */
+  setLayout: (newLayout: 'radial' | 'horizontal') => {
+    const state = get();
+    // Import applyLayout dynamically to avoid circular dependency
+    import('../repository/layoutEngine').then(({ applyLayout }) => {
+      const result = applyLayout(
+        state.nodes as any, // Type coercion for MarkdownNode compatibility
+        state.edges as any,
+        newLayout
+      );
+
+      if (result.ok) {
+        // Update both layout and repositioned nodes
+        set({
+          layout: newLayout,
+          nodes: result.value as any,
+        });
+      } else {
+        console.error('Layout error:', result.error);
+        throw new Error(result.error.message);
+      }
+    });
+  },
+
+  /**
+   * T100: Re-apply current layout to nodes (Feature 004 - Phase 7)
+   * Useful for recalculating positions after node edits
+   */
+  applyCurrentLayout: () => {
+    const state = get();
+    // Import applyLayout dynamically
+    import('../repository/layoutEngine').then(({ applyLayout }) => {
+      const result = applyLayout(
+        state.nodes as any,
+        state.edges as any,
+        state.layout as any
+      );
+
+      if (result.ok) {
+        set({ nodes: result.value as any });
+      } else {
+        console.error('Layout error:', result.error);
+      }
+    });
+  },
 
   // ============================================
   // File Management Actions

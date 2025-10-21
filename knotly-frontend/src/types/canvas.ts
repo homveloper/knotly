@@ -101,6 +101,11 @@ export interface CanvasStore {
   hasUnsavedChanges: boolean; // Track dirty state for unsaved changes indicator
   recentFiles: string[]; // Last 5 opened file paths (persisted in localStorage)
 
+  // Markdown Editor State (Feature 004)
+  layout: 'radial' | 'horizontal'; // Current layout type for mind map
+  markdown: string; // Current markdown text
+  splitRatio: number[]; // Split pane ratio [leftPercent, rightPercent]
+
   // === Node Actions ===
   /** Create new node at canvas position, optionally auto-connect to selected node */
   createNode: (position: { x: number; y: number }, selectedNodeId?: string | null) => void;
@@ -146,6 +151,15 @@ export interface CanvasStore {
 
   /** Set connecting mode (drag-to-connect) */
   setConnectingFrom: (id: string | null) => void;
+
+  /** Set split ratio for editor/canvas panes (Feature 004 - Phase 6) */
+  setSplitRatio: (ratio: number[]) => void;
+
+  /** Set layout and recalculate node positions (Feature 004 - Phase 7) */
+  setLayout: (layout: 'radial' | 'horizontal') => void;
+
+  /** Re-apply current layout to nodes (Feature 004 - Phase 7) */
+  applyCurrentLayout: () => void;
 
   // === File Management Actions ===
   /** Mark canvas as having unsaved changes */
