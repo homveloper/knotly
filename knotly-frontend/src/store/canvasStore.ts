@@ -24,8 +24,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   // ============================================
   nodes: [],
   edges: [],
-  zoom: 1, // Default 100% zoom
-  pan: { x: 0, y: 0 }, // Default no pan
+  zoom: 1.5, // Default 150% zoom (nodes appear larger)
+  pan: { x: 0, y: 0 }, // Default no pan (auto-centered after markdown parsing)
   gridEnabled: false, // Grid hidden by default
   snapEnabled: false, // Snap disabled by default
   selectedEdgeId: null, // No edge selected initially

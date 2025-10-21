@@ -280,3 +280,52 @@ export function validateUrl(
     };
   }
 }
+
+// ============================================================================
+// Canvas Layout Helpers
+// ============================================================================
+
+/**
+ * Calculate the center point of all nodes' bounding box
+ * Used for auto-centering the canvas viewport after parsing markdown
+ *
+ * @param nodes - Array of nodes with position coordinates
+ * @returns Center point { x, y } of all nodes, or { x: 0, y: 0 } if no nodes
+ *
+ * @example
+ * const nodes = [
+ *   { position: { x: 100, y: 100 } },
+ *   { position: { x: 500, y: 500 } }
+ * ];
+ * calculateNodesBoundingCenter(nodes);
+ * // Returns: { x: 300, y: 300 } (midpoint of bounding box)
+ */
+export function calculateNodesBoundingCenter(
+  nodes: MarkdownNode[]
+): { x: number; y: number } {
+  if (nodes.length === 0) {
+    return { x: 0, y: 0 };
+  }
+
+  // Find bounding box of all nodes
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  for (const node of nodes) {
+    const x = node.position.x;
+    const y = node.position.y;
+
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+
+  // Return center of bounding box
+  return {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+  };
+}
